@@ -1,0 +1,276 @@
+#!/usr/bin/env python3
+"""Single source for Oavi's interface text. Writes values/strings.xml (English) and
+values-tr/strings.xml (Turkish), and checks every key has both languages."""
+import os, sys
+from xml.sax.saxutils import escape
+
+# key: (English, Turkish)
+S = {
+    # Island and address entry
+    "island_placeholder": ("Search or enter address", "Ara ya da adres yaz"),
+    "cd_protection": ("Site protection", "Site koruması"),
+    "cd_reload": ("Reload", "Yenile"),
+    "cd_stop": ("Stop loading", "Yüklemeyi durdur"),
+    "cd_tabs": ("%1$d tabs open", "%1$d sekme açık"),
+    "cd_menu": ("Menu", "Menü"),
+    "cd_reader": ("Reading view", "Okuma görünümü"),
+    "cd_clear": ("Clear", "Temizle"),
+    "cd_close": ("Close", "Kapat"),
+    "cd_back": ("Back", "Geri"),
+    "cd_forward": ("Forward", "İleri"),
+    "cd_previous": ("Previous match", "Önceki eşleşme"),
+    "cd_next": ("Next match", "Sonraki eşleşme"),
+    "cd_share": ("Share", "Paylaş"),
+    "cd_delete": ("Delete", "Sil"),
+    "cd_close_tab": ("Close tab", "Sekmeyi kapat"),
+    "search_copy_link": ("Copy link", "Bağlantıyı kopyala"),
+    "search_share": ("Share", "Paylaş"),
+    "search_switch_to_tab": ("Switch to this tab", "Bu sekmeye geç"),
+    "find_placeholder": ("Find in page", "Sayfada bul"),
+    # Menu
+    "menu_new_tab": ("New tab", "Yeni sekme"),
+    "menu_private_tab": ("Private tab", "Gizli sekme"),
+    "menu_bookmark": ("Bookmark", "Yer imi ekle"),
+    "menu_bookmarked": ("Bookmarked", "Yer iminde"),
+    "menu_reader": ("Reading view", "Okuma görünümü"),
+    "menu_dark_pages": ("Dark pages", "Karanlık sayfalar"),
+    "menu_find": ("Find in page", "Sayfada bul"),
+    "menu_more": ("More", "Daha fazla"),
+    "menu_less": ("Less", "Daha az"),
+    "menu_library": ("Bookmarks and history", "Yer imleri ve geçmiş"),
+    "menu_downloads": ("Downloads", "İndirilenler"),
+    "menu_desktop_site": ("Desktop site", "Masaüstü sitesi"),
+    "menu_settings": ("Settings", "Ayarlar"),
+    # New tab page
+    "home_morning": ("Good morning", "Günaydın"),
+    "home_afternoon": ("Good afternoon", "İyi günler"),
+    "home_evening": ("Good evening", "İyi akşamlar"),
+    "home_night": ("Good night", "İyi geceler"),
+    "home_resume_title": ("Pick up where you left off", "Kaldığın yerden devam et"),
+    "home_top_sites": ("Places you visit often", "Sık uğradığın yerler"),
+    "home_private_title": ("Private tab", "Gizli sekme"),
+    "home_private_not_saved": (
+        "Oavi won't keep the pages you visit here, their cookies, or what you type into forms. It is all gone when you close your private tabs.",
+        "Oavi burada gezdiğin sayfaları, çerezlerini ve formlara yazdıklarını saklamaz. Gizli sekmeleri kapattığında hepsi silinir.",
+    ),
+    "home_private_still_visible": (
+        "Websites, your internet provider and the network you are on can still see what you do.",
+        "Web siteleri, internet sağlayıcın ve bağlı olduğun ağ yaptıklarını yine de görebilir.",
+    ),
+    "crash_title": ("This page stopped", "Bu sayfa durdu"),
+    "crash_body": ("Something went wrong while showing it. Your other tabs are fine.", "Gösterilirken bir sorun oldu. Diğer sekmelerin yerinde."),
+    "crash_reload": ("Reload page", "Sayfayı yenile"),
+    # Page requests
+    "request_page_says": ("This page says", "Bu sayfa diyor ki"),
+    "request_ok": ("OK", "Tamam"),
+    "request_cancel": ("Cancel", "Vazgeç"),
+    "request_allow": ("Allow", "İzin ver"),
+    "request_deny": ("Don't allow", "İzin verme"),
+    "request_done": ("Done", "Bitti"),
+    "request_stay": ("Stay here", "Burada kal"),
+    "request_leave_title": ("Leave this page?", "Bu sayfadan ayrılınsın mı?"),
+    "request_leave_body": ("Changes you made may not be saved.", "Yaptığın değişiklikler kaydedilmeyebilir."),
+    "request_leave_confirm": ("Leave", "Ayrıl"),
+    "request_resubmit_title": ("Send this form again?", "Bu form yeniden gönderilsin mi?"),
+    "request_resubmit_body": (
+        "Reloading repeats what the form did, such as a purchase or a message.",
+        "Yenilemek, formun yaptığı işlemi (bir satın alma ya da mesaj gibi) tekrarlar.",
+    ),
+    "request_resubmit_confirm": ("Send again", "Yeniden gönder"),
+    "request_open_app_title": ("Open in another app?", "Başka bir uygulamada açılsın mı?"),
+    "request_open_app_body": ("This link wants to leave Oavi and open another app.", "Bu bağlantı Oavi'den çıkıp başka bir uygulama açmak istiyor."),
+    "request_open_app_confirm": ("Open", "Aç"),
+    "request_location_title": ("Let %1$s see your location?", "%1$s konumunu görsün mü?"),
+    "request_camera_title": ("Let %1$s use your camera?", "%1$s kameranı kullansın mı?"),
+    "request_microphone_title": ("Let %1$s use your microphone?", "%1$s mikrofonunu kullansın mı?"),
+    "request_camera_microphone_title": ("Let %1$s use your camera and microphone?", "%1$s kameranı ve mikrofonunu kullansın mı?"),
+    "request_login_title": ("Sign in to %1$s", "%1$s için oturum aç"),
+    "request_username": ("Username", "Kullanıcı adı"),
+    "request_password": ("Password", "Parola"),
+    "request_sign_in": ("Sign in", "Oturum aç"),
+    "context_open_new_tab": ("Open in new tab", "Yeni sekmede aç"),
+    "context_open_private_tab": ("Open in private tab", "Gizli sekmede aç"),
+    "context_copy_link": ("Copy link", "Bağlantıyı kopyala"),
+    "context_share_link": ("Share link", "Bağlantıyı paylaş"),
+    "context_open_image": ("Open image in new tab", "Görseli yeni sekmede aç"),
+    # Brief messages
+    "snack_link_copied": ("Link copied", "Bağlantı kopyalandı"),
+    "snack_undo": ("Undo", "Geri al"),
+    "snack_open": ("Open", "Aç"),
+    "snack_bookmark_added": ("Bookmarked", "Yer imlerine eklendi"),
+    "snack_bookmark_removed": ("Bookmark removed", "Yer imi kaldırıldı"),
+    "snack_download_started": ("Downloading %1$s", "%1$s indiriliyor"),
+    "snack_download_done": ("%1$s is in Downloads", "%1$s İndirilenler'de"),
+    "snack_download_failed": ("Couldn't download %1$s", "%1$s indirilemedi"),
+    "snack_no_app": ("No app on this phone can open that link", "Bu telefonda o bağlantıyı açabilecek bir uygulama yok"),
+    "snack_history_cleared": ("History cleared", "Geçmiş temizlendi"),
+    "snack_site_data_cleared": ("Cookies and site data cleared", "Çerezler ve site verileri temizlendi"),
+    # Tabs
+    "tabs_normal": ("Tabs", "Sekmeler"),
+    "tabs_private": ("Private", "Gizli"),
+    "tabs_all": ("All", "Tümü"),
+    "tabs_archive": ("Archive", "Arşiv"),
+    "tabs_new_tab": ("New tab", "Yeni sekme"),
+    "tabs_new_private_tab": ("New private tab", "Yeni gizli sekme"),
+    "tabs_done": ("Done", "Bitti"),
+    "tabs_close_all": ("Close all", "Tümünü kapat"),
+    "tabs_untitled": ("New tab", "Yeni sekme"),
+    "tabs_empty_title": ("No tabs here", "Burada sekme yok"),
+    "tabs_empty_private_body": ("Private tabs you open will appear here until you close them.", "Açtığın gizli sekmeler, kapatana kadar burada görünür."),
+    "tabs_empty_archive_body": (
+        "Tabs you haven't opened for two weeks move here, so they stay out of the way without being lost.",
+        "İki hafta boyunca açmadığın sekmeler buraya taşınır; kaybolmaz ama ayak altında da durmaz.",
+    ),
+    "tabs_empty_group_body": ("This group has no tabs yet.", "Bu grupta henüz sekme yok."),
+    "tab_add_to_group": ("Add to group", "Gruba ekle"),
+    "tab_new_group": ("New group", "Yeni grup"),
+    "tab_remove_from_group": ("Remove from group", "Gruptan çıkar"),
+    "tab_archive": ("Archive", "Arşivle"),
+    "tab_restore": ("Bring back", "Geri getir"),
+    "tab_close": ("Close tab", "Sekmeyi kapat"),
+    "tab_close_others": ("Close other tabs", "Diğer sekmeleri kapat"),
+    "group_name_hint": ("Group name", "Grup adı"),
+    "group_create": ("Create group", "Grubu oluştur"),
+    "group_new_title": ("New group", "Yeni grup"),
+    "group_default_name": ("Group", "Grup"),
+    # Privacy
+    "protection_nothing": ("Nothing has needed blocking on this page.", "Bu sayfada engellenmesi gereken bir şey çıkmadı."),
+    "protection_secure": ("Connection is encrypted", "Bağlantı şifreli"),
+    "protection_secure_body": ("What you send to this site can't be read along the way.", "Bu siteye gönderdiklerin yolda okunamaz."),
+    "protection_insecure": ("Connection is not encrypted", "Bağlantı şifreli değil"),
+    "protection_insecure_body": ("Don't enter passwords or card details on this page.", "Bu sayfaya parola ya da kart bilgisi girme."),
+    "protection_site_toggle": ("Protect me on this site", "Bu sitede beni koru"),
+    "protection_site_toggle_hint": ("Turn off only if the site doesn't work properly.", "Yalnızca site düzgün çalışmıyorsa kapat."),
+    "protection_off_globally": ("Blocking is switched off in Settings.", "Engelleme Ayarlar'da kapalı."),
+    "protection_hardened": ("Advanced Protection is on for this phone, so Oavi uses its strictest settings.", "Bu telefonda Gelişmiş Koruma açık; Oavi en sıkı ayarlarını kullanıyor."),
+    "protection_open_settings": ("Privacy settings", "Gizlilik ayarları"),
+    "lock_title": ("Private tabs are locked", "Gizli sekmeler kilitli"),
+    "lock_body": ("Unlock to see them again.", "Yeniden görmek için kilidi aç."),
+    "lock_unlock": ("Unlock", "Kilidi aç"),
+    "lock_prompt_title": ("Unlock private tabs", "Gizli sekmelerin kilidini aç"),
+    # Reading view
+    "reader_title": ("Reading view", "Okuma görünümü"),
+    "reader_text_size": ("Text size", "Yazı boyutu"),
+    "reader_theme_auto": ("Auto", "Otomatik"),
+    "reader_theme_light": ("Light", "Açık"),
+    "reader_theme_sepia": ("Sepia", "Sepya"),
+    "reader_theme_dark": ("Dark", "Koyu"),
+    "reader_exit": ("Back to the full page", "Tam sayfaya dön"),
+    "reader_smaller": ("Smaller text", "Yazıyı küçült"),
+    "reader_larger": ("Larger text", "Yazıyı büyüt"),
+    # First run
+    "onboarding_title": ("Hello.\nThis is Oavi.", "Merhaba.\nBu Oavi."),
+    "onboarding_body": (
+        "A browser that stays out of your way: one control under your thumb, trackers and ads kept out.",
+        "Ayak altında dolaşmayan bir tarayıcı: başparmağının altında tek kontrol, izleyiciler ve reklamlar dışarıda.",
+    ),
+    "onboarding_search_title": ("Which search engine do you use?", "Hangi arama motorunu kullanıyorsun?"),
+    "onboarding_search_body": ("You can change it any time in Settings.", "İstediğin zaman Ayarlar'dan değiştirebilirsin."),
+    "onboarding_continue": ("Continue", "Devam"),
+    "onboarding_default_title": ("Open links in Oavi?", "Bağlantılar Oavi'de açılsın mı?"),
+    "onboarding_default_body": (
+        "As your default browser, Oavi opens the links you tap in other apps.",
+        "Varsayılan tarayıcın olursa, başka uygulamalarda dokunduğun bağlantıları Oavi açar.",
+    ),
+    "onboarding_default_yes": ("Make Oavi my browser", "Oavi'yi tarayıcım yap"),
+    "onboarding_default_later": ("Not now", "Şimdi değil"),
+    # Library
+    "library_history": ("History", "Geçmiş"),
+    "library_bookmarks": ("Bookmarks", "Yer imleri"),
+    "library_search_hint": ("Search your history and bookmarks", "Geçmişinde ve yer imlerinde ara"),
+    "library_empty_history": ("Pages you visit will be listed here.", "Gezdiğin sayfalar burada listelenir."),
+    "library_empty_bookmarks": ("Pages you bookmark will be kept here.", "Yer imine eklediğin sayfalar burada durur."),
+    "library_no_results": ("Nothing matches that.", "Buna uyan bir şey yok."),
+    "library_clear_history": ("Clear history", "Geçmişi temizle"),
+    # Settings
+    "settings_title": ("Settings", "Ayarlar"),
+    "settings_section_search": ("Search", "Arama"),
+    "settings_section_privacy": ("Privacy", "Gizlilik"),
+    "settings_ad_block": ("Block ads", "Reklamları engelle"),
+    "settings_ad_block_body": ("Stops known advertising networks from loading on the sites you visit.", "Bilinen reklam ağlarının gezdiğin sitelerde yüklenmesini durdurur."),
+    "settings_tracking": ("Tracking protection", "İzleme koruması"),
+    "settings_tracking_off": ("Off", "Kapalı"),
+    "settings_tracking_standard": ("Standard", "Standart"),
+    "settings_tracking_strict": ("Strict", "Sıkı"),
+    "settings_tracking_body": ("Strict blocks more trackers; a few sites may look incomplete.", "Sıkı mod daha fazla izleyiciyi engeller; birkaç site eksik görünebilir."),
+    "settings_https_only": ("Encrypted connections only", "Yalnızca şifreli bağlantı"),
+    "settings_https_only_body": ("Oavi asks before opening a site that doesn't offer HTTPS.", "HTTPS sunmayan bir siteyi açmadan önce Oavi sorar."),
+    "settings_lock_private": ("Lock private tabs", "Gizli sekmeleri kilitle"),
+    "settings_lock_private_body": ("Ask for your fingerprint or screen lock when you return to Oavi.", "Oavi'ye döndüğünde parmak izini ya da ekran kilidini ister."),
+    "settings_clear_data": ("Clear cookies and site data", "Çerezleri ve site verilerini temizle"),
+    "settings_clear_data_body": ("Signs you out of websites and empties the cache.", "Web sitelerindeki oturumlarını kapatır ve önbelleği boşaltır."),
+    "settings_clear_data_confirm_title": ("Clear cookies and site data?", "Çerezler ve site verileri temizlensin mi?"),
+    "settings_clear_data_confirm_body": ("You will be signed out of websites. This can't be undone.", "Web sitelerindeki oturumların kapanır. Bu geri alınamaz."),
+    "settings_clear_data_confirm": ("Clear", "Temizle"),
+    "settings_section_appearance": ("Appearance", "Görünüm"),
+    "settings_theme_system": ("Follow phone", "Telefona uy"),
+    "settings_theme_light": ("Light", "Açık"),
+    "settings_theme_dark": ("Dark", "Koyu"),
+    "settings_dark_pages": ("Dark pages", "Karanlık sayfalar"),
+    "settings_dark_pages_body": ("Darkens sites that have no dark theme of their own.", "Kendi karanlık teması olmayan siteleri karartır."),
+    "settings_collapse_island": ("Tuck the island away while reading", "Okurken adayı küçült"),
+    "settings_collapse_island_body": ("It shrinks as you scroll down and returns when you scroll up.", "Aşağı kaydırınca küçülür, yukarı kaydırınca geri gelir."),
+    "settings_section_performance": ("Performance", "Performans"),
+    "settings_boost": ("Speed boost", "Hız desteği"),
+    "settings_boost_body": ("Asks for the fast cores and the highest refresh rate while pages load.", "Sayfalar yüklenirken hızlı çekirdekleri ve en yüksek yenileme hızını ister."),
+    "settings_profile_exynos_1480": ("Tuned for this phone's Exynos 1480", "Bu telefonun Exynos 1480 çipine göre ayarlı"),
+    "settings_profile_exynos": ("Tuned for this phone's Exynos chip", "Bu telefonun Exynos çipine göre ayarlı"),
+    "settings_profile_standard": ("Standard profile", "Standart profil"),
+    "settings_profile_low_memory": ("Memory-saving profile", "Bellek tasarrufu profili"),
+    "settings_chip": ("Chip: %1$s", "Çip: %1$s"),
+    "settings_section_general": ("General", "Genel"),
+    "settings_default_browser": ("Make Oavi my browser", "Oavi'yi tarayıcım yap"),
+    "settings_default_browser_body": ("Open links from other apps in Oavi.", "Diğer uygulamalardaki bağlantılar Oavi'de açılsın."),
+    "settings_version": ("Oavi %1$s", "Oavi %1$s"),
+    # Error pages
+    "error_retry": ("Try again", "Yeniden dene"),
+    "error_offline_title": ("You're offline", "Çevrimdışısın"),
+    "error_offline_body": ("Check your Wi-Fi or mobile data, then try again.", "Wi-Fi ya da mobil veri bağlantını kontrol edip yeniden dene."),
+    "error_not_found_title": ("Can't find this site", "Bu site bulunamıyor"),
+    "error_not_found_body": ("Check the address for typos. The site may also have moved or closed.", "Adreste yazım hatası olabilir. Site taşınmış ya da kapanmış da olabilir."),
+    "error_timeout_title": ("This is taking too long", "Bu çok uzun sürüyor"),
+    "error_timeout_body": ("The site didn't answer in time. It may be busy, or your connection may be slow.", "Site zamanında yanıt vermedi. Yoğun olabilir ya da bağlantın yavaş olabilir."),
+    "error_security_title": ("This connection isn't safe", "Bu bağlantı güvenli değil"),
+    "error_security_body": (
+        "Oavi couldn't confirm this site is who it says it is, so it didn't open it.",
+        "Oavi bu sitenin söylediği kişi olduğunu doğrulayamadı, bu yüzden açmadı.",
+    ),
+    "error_connection_title": ("Can't reach this site", "Bu siteye ulaşılamıyor"),
+    "error_connection_body": ("The connection was refused or dropped. Try again in a moment.", "Bağlantı reddedildi ya da koptu. Biraz sonra yeniden dene."),
+    "error_unknown_title": ("This page didn't open", "Bu sayfa açılmadı"),
+    "error_unknown_body": ("Something went wrong while loading it.", "Yüklenirken bir sorun oldu."),
+}
+
+# key: ((one, other) English, (one, other) Turkish)
+P = {
+    "home_blocked_week": (("%1$d tracker kept out this week", "%1$d trackers kept out this week"),
+                          ("Bu hafta %1$d izleyici dışarıda kaldı", "Bu hafta %1$d izleyici dışarıda kaldı")),
+    "snack_tabs_closed": (("Tab closed", "%1$d tabs closed"), ("Sekme kapatıldı", "%1$d sekme kapatıldı")),
+    "protection_blocked": (("%1$d tracker or ad blocked on this page", "%1$d trackers and ads blocked on this page"),
+                           ("Bu sayfada %1$d izleyici ya da reklam engellendi", "Bu sayfada %1$d izleyici ve reklam engellendi")),
+    "protection_total": (("%1$d blocked since you started using Oavi", "%1$d blocked since you started using Oavi"),
+                         ("Oavi'yi kullanmaya başladığından beri %1$d engellendi", "Oavi'yi kullanmaya başladığından beri %1$d engellendi")),
+    "tabs_count": (("%1$d tab", "%1$d tabs"), ("%1$d sekme", "%1$d sekme")),
+}
+
+def android_escape(text):
+    return escape(text).replace("'", "\\'").replace('"', '\\"').replace("\n", "\\n")
+
+def write(path, index):
+    lines = ['<?xml version="1.0" encoding="utf-8"?>', "<resources>"]
+    for key, values in S.items():
+        lines.append(f'    <string name="{key}">{android_escape(values[index])}</string>')
+    for key, values in P.items():
+        one, other = values[index]
+        lines.append(f'    <plurals name="{key}">')
+        lines.append(f'        <item quantity="one">{android_escape(one)}</item>')
+        lines.append(f'        <item quantity="other">{android_escape(other)}</item>')
+        lines.append("    </plurals>")
+    lines.append("</resources>")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    open(path, "w", encoding="utf8").write("\n".join(lines) + "\n")
+
+res = sys.argv[1]
+write(os.path.join(res, "values/strings.xml"), 0)
+write(os.path.join(res, "values-tr/strings.xml"), 1)
+print(len(S), "strings,", len(P), "plurals")

@@ -25,6 +25,15 @@ object RefreshRate {
         }
     }
 
+    /** Hands the choice of refresh rate back to the phone. */
+    fun usePhoneDefault(window: Window) {
+        val attributes = window.attributes
+        if (attributes.preferredDisplayModeId != 0) {
+            attributes.preferredDisplayModeId = 0
+            window.attributes = attributes
+        }
+    }
+
     /** Duration of one frame at the display's current rate, in nanoseconds. */
     fun frameIntervalNanos(window: Window): Long {
         val rate = try {
