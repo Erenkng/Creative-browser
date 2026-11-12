@@ -19,8 +19,10 @@ android {
         versionName = "0.1.0"
 
         // The engine ships native code per CPU type; phones on Android 17 are all arm64.
+        // CI adds x86_64 (-Poavi.extraAbi=x86_64) so the release build can run on its emulator.
         ndk {
             abiFilters += "arm64-v8a"
+            providers.gradleProperty("oavi.extraAbi").orNull?.let { abiFilters += it }
         }
     }
 
@@ -40,7 +42,7 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             signingConfig = signingConfigs.getByName("oavi")
-            // Lets the debug build run on the x86_64 emulator used for the CI smoke test.
+            // Lets the debug build run on an x86_64 emulator during development.
             ndk {
                 abiFilters += "x86_64"
             }

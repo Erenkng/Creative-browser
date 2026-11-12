@@ -91,10 +91,11 @@ jobs:
       - name: Accept Android SDK licences
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
 
-      - name: Build debug APK
+      # The same optimised build people install, plus x86_64 so the emulator can run it.
+      - name: Build release APK for the emulator
         run: |
-          ./gradlew assembleDebug --console=plain > build-debug.log 2>&1 \
-            || { grep -E "^e: |: error:|What went wrong|FAILED" -A 6 build-debug.log | head -n 120; exit 1; }
+          ./gradlew assembleRelease -Poavi.extraAbi=x86_64 --console=plain > build-release.log 2>&1 \
+            || { grep -E "^e: |: error:|What went wrong|FAILED" -A 6 build-release.log | head -n 120; exit 1; }
 
       - name: Enable KVM
         run: |
@@ -103,12 +104,14 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Run smoke test
-        run: bash tools/ci-emulator.sh
+        env:
+          SMOKE_SCREENSHOTS: ${{ contains(github.event.head_commit.message, '[screenshots]') && '1' || '0' }}
+        run: bash tools/ci-emulator.sh app/build/outputs/apk/release/app-release.apk com.oavi.browser
 
-      - name: Upload screenshot
+      - name: Upload screenshots
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: smoke-screenshot
-          path: smoke-screenshot.png
+          name: smoke-screenshots
+          path: shots/*.png
           if-no-files-found: ignore

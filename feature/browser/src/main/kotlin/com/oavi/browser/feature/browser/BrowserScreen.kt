@@ -15,6 +15,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.statusBars
@@ -259,8 +260,22 @@ fun BrowserScreen(
             )
         }
 
+        // While the keyboard is up for a field on the page, the island would sit on top of what
+        // is being typed, so it steps aside and returns when the keyboard closes.
+        // The short wait ignores the moment when the address field's own keyboard is closing.
+        val keyboardOpen = WindowInsets.ime.getBottom(density) > 0
+        var typingOnPage by remember { mutableStateOf(false) }
+        LaunchedEffect(keyboardOpen, mode) {
+            if (keyboardOpen && (mode == IslandMode.RESTING || mode == IslandMode.COMPACT)) {
+                delay(350)
+                typingOnPage = true
+            } else {
+                typingOnPage = false
+            }
+        }
+
         AnimatedVisibility(
-            visible = !fullscreen && !covered,
+            visible = !fullscreen && !covered && !typingOnPage,
             modifier = Modifier.align(Alignment.BottomCenter),
             enter = slideInVertically(OaviMotion.spatial()) { it } + fadeIn(OaviMotion.fade()),
             exit = slideOutVertically(OaviMotion.gentle()) { it } + fadeOut(OaviMotion.fade()),
