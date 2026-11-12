@@ -37,6 +37,14 @@ Oavi'de üst çubuk yoktur. Tek kontrol, ekranın altında başparmağın durdu�
 | Sekme kartını yana kaydır | Sekmeyi kapat ("Geri al" ile döner) |
 | Sekme kartına uzun bas | Grupla, arşivle, diğerlerini kapat |
 
+Sayfaların kendi alt şeritleri (çerez bildirimleri, sohbet kutuları, "Kabul et" düğmeleri)
+adanın arkasında kalmaz: motora adanın sayfanın altından ne kadarını kapladığı bildirilir, bu
+şeritler adanın üstünde durur ve ada okuma hapına küçüldükçe aynı yay hareketiyle aşağı iner.
+
+İkinci sekme açıldığında yeni sekme sayfasında, adanın hemen üstünde bir kez kısa bir ipucu
+çıkar (yana kaydır: sekme değiştir, yukarı: tüm sekmeler, aşağı: küçült). İlk yana kaydırmada
+ya da "Anladım" denince bir daha görünmez.
+
 ### Tasarımın dayandığı ilkeler
 
 | İlke | Oavi'de karşılığı |
@@ -160,7 +168,7 @@ Her push'ta GitHub Actions şunları çalıştırır:
 | Uzantı testleri (`tools/extension-test`) | Reklam engelleme kuralları, site bazında kapatma, okuma görünümü (içeriğin arındırılması dahil), karanlık sayfa — gerçek bir DOM üzerinde |
 | Debug ve release derlemesi | Uygulamanın tamamı Android 17 SDK'sı, Compose ve GeckoView'e karşı derlenir; release R8 ile küçültülür |
 | Lint | Android'in statik denetimleri |
-| Emülatörde duman testi | **Release** sürümü Android 17 emülatörüne kurulur; ilk açılış, arama motoru seçimi, başka uygulamadan gelen bağlantıyla gerçek bir sayfa, menü, sekme ızgarası ve adres alanı tek tek denenir; çökme ve cihaz profilinin motora ulaştığı kontrol edilir |
+| Emülatörde duman testi | **Release** sürümü Android 17 emülatörüne kurulur; ilk açılış, arama motoru seçimi, başka uygulamadan gelen bağlantıyla gerçek bir sayfa, menü, sekme ızgarası, adres alanı, koruma paneli, ayarlar, yerel ağ izni akışı ve gizli sekme tek tek denenir. Altta sabit şeridi olan bir test sayfasında şeridin adanın üstünde durduğu ve ada küçülünce aşağı indiği ekran görüntüsünden ölçülür. Çökme olmadığı ve cihaz profilinin motora ulaştığı da kontrol edilir |
 
 Duman testi her adımda ekran görüntüsü alır; Actions çalışmasının **Artifacts** bölümünde
 `smoke-screenshots` olarak durur.
@@ -184,6 +192,8 @@ Hız ve akıcılık yalnızca gerçek cihazda ölçülebilir. Release sürümün
 - Site simgeleri (favicon) yerine sitenin baş harfi gösterilir.
 - Parola kaydetme, eşitleme ve uzantı mağazası yok.
 - Reklam listesi yerleşiktir; kendiliğinden güncellenmez.
+- Sayfanın en sonundaki içerik, ada tam boyutundayken adanın arkasında kalabilir; aşağı
+  kaydırınca ada küçüldüğü için genellikle görünür hâle gelir.
 
 ## Lisanslar
 
