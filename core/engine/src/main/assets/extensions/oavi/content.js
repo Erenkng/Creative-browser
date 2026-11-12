@@ -102,6 +102,28 @@
     root.style.setProperty("--oavi-scale", String(readerScale));
   }
 
+  // Readability extracts the article but does not make it safe. The markup is parsed inside
+  // a <template>, where nothing runs or loads, and stripped of anything that could execute
+  // before it is shown.
+  function sanitize(html) {
+    const template = document.createElement("template");
+    template.innerHTML = html;
+    const fragment = template.content;
+    for (const node of fragment.querySelectorAll("script, style, link, object, embed, form, input, button, select, textarea")) {
+      node.remove();
+    }
+    for (const node of fragment.querySelectorAll("*")) {
+      for (const attribute of Array.from(node.attributes)) {
+        const name = attribute.name.toLowerCase();
+        const scripted = /^\s*javascript:/i.test(attribute.value);
+        if (name.startsWith("on") || name === "style" || name === "srcdoc" || scripted) {
+          node.removeAttribute(attribute.name);
+        }
+      }
+    }
+    return fragment;
+  }
+
   function enterReader() {
     let article = null;
     try {
@@ -148,8 +170,7 @@
 
     const content = document.createElement("div");
     content.className = "oavi-content";
-    // Readability returns markup with scripts and event handlers already removed.
-    content.innerHTML = article.content;
+    content.appendChild(sanitize(article.content));
     main.appendChild(content);
 
     body.appendChild(main);

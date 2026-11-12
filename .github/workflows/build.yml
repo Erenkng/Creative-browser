@@ -12,6 +12,8 @@ concurrency:
 permissions:
   contents: read
 
+# Gradle output is written to log files and only the relevant lines are printed, so a
+# failure can be read at a glance.
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -25,28 +27,40 @@ jobs:
           java-version: 21
 
       - uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-cleanup: never
 
       - name: Accept Android SDK licences
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
 
-      - name: Unit tests
-        run: ./gradlew :core:model:test --console=plain
+      - name: Page-tools extension tests
+        working-directory: tools/extension-test
+        run: npm install --silent && npm test
 
-      - name: Engine version
-        if: always()
-        run: ./gradlew :core:engine:dependencyInsight --configuration debugCompileClasspath --dependency geckoview --console=plain | grep -m 5 -i geckoview || true
+      - name: Unit tests
+        run: |
+          ./gradlew :core:model:test --console=plain > unit-tests.log 2>&1 \
+            || { grep -E "FAILED|AssertionError|What went wrong" -A 6 unit-tests.log | head -n 80; exit 1; }
+          echo "unit tests passed"
 
       - name: Build debug APK
-        if: always()
-        run: ./gradlew assembleDebug --console=plain
+        run: |
+          ./gradlew assembleDebug --console=plain > build-debug.log 2>&1 \
+            || { grep -E "^e: |: error:|What went wrong|FAILED" -A 6 build-debug.log | head -n 120; exit 1; }
+          ls -la app/build/outputs/apk/debug/*.apk
 
       - name: Build release APK
-        if: always()
-        run: ./gradlew assembleRelease --console=plain
+        run: |
+          ./gradlew assembleRelease --console=plain > build-release.log 2>&1 \
+            || { grep -E "^e: |: error:|What went wrong|FAILED|Missing class|R8" -A 6 build-release.log | head -n 120; exit 1; }
+          ls -la app/build/outputs/apk/release/*.apk
 
       - name: Lint
-        if: always()
-        run: ./gradlew lintDebug --console=plain
+        run: |
+          ./gradlew lintDebug --console=plain > lint.log 2>&1 && { echo "lint passed"; exit 0; }
+          grep -E "Lint found|What went wrong" -A 3 lint.log | head -n 20
+          find . -path "*lint_intermediate_text_report*" -name "*.txt" -exec grep -h -A 4 "Error:" {} + | head -n 120
+          exit 1
 
       - name: Upload APKs
         if: always()
@@ -71,31 +85,25 @@ jobs:
           java-version: 21
 
       - uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-cleanup: never
 
       - name: Accept Android SDK licences
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug --console=plain -q
-
-      - name: Available Android 17 system images
-        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --list 2>/dev/null | grep -E "system-images;android-3[7-9]" | cut -d"|" -f1 | sort -u | head -n 30 || true'
+        run: |
+          ./gradlew assembleDebug --console=plain > build-debug.log 2>&1 \
+            || { grep -E "^e: |: error:|What went wrong|FAILED" -A 6 build-debug.log | head -n 120; exit 1; }
 
       - name: Enable KVM
         run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules > /dev/null
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
       - name: Run smoke test
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 37
-          arch: x86_64
-          target: google_apis
-          ram-size: 4096M
-          disable-animations: false
-          script: bash tools/smoke-test.sh
+        run: bash tools/ci-emulator.sh
 
       - name: Upload screenshot
         if: always()

@@ -1,0 +1,11 @@
+{
+  "name": "oavi-extension-test",
+  "private": true,
+  "description": "Tests for Oavi's bundled page-tools extension.",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "devDependencies": {
+    "jsdom": "31.0.0"
+  }
+}

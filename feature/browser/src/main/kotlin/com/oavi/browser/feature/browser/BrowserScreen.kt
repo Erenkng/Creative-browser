@@ -160,6 +160,12 @@ fun BrowserScreen(
         value = if (blank) topSiteShortcuts(library.topSites()) else emptyList()
     }
 
+    // A tab opened from a link has nowhere to go back to inside itself; going back closes it
+    // and returns to the page it came from, as people expect.
+    val opener = selected?.tab?.parentId?.let(state::tab)
+    BackHandler(enabled = !covered && selected != null && !selected.canGoBack && opener != null) {
+        selected?.let { controller.close(it.id) }
+    }
     BackHandler(enabled = !covered && selected?.canGoBack == true && mode != IslandMode.SEARCH && mode != IslandMode.MENU) {
         controller.goBack()
     }
