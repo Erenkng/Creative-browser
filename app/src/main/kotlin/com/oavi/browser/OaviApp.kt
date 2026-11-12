@@ -15,12 +15,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.oavi.browser.device.DeviceInfo
@@ -68,6 +70,8 @@ fun OaviApp(container: AppContainer, activity: MainActivity) {
     var readerOpen by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarState() }
     val context = LocalContext.current
+    // Follows language and configuration changes, unlike reading strings from the context.
+    val resources by rememberUpdatedState(LocalResources.current)
 
     val defaultBrowserRequest = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         activity.refreshDefaultBrowser()
@@ -95,22 +99,22 @@ fun OaviApp(container: AppContainer, activity: MainActivity) {
             controller.events.collect { event ->
                 when (event) {
                     is BrowserEvent.TabsClosed -> snackbar.show(
-                        context.resources.getQuantityString(R.plurals.snack_tabs_closed, event.count, event.count),
-                        context.getString(R.string.snack_undo),
+                        resources.getQuantityString(R.plurals.snack_tabs_closed, event.count, event.count),
+                        resources.getString(R.string.snack_undo),
                     ) { controller.undoClose() }
 
                     is BrowserEvent.DownloadStarted ->
-                        snackbar.show(context.getString(R.string.snack_download_started, event.name))
+                        snackbar.show(resources.getString(R.string.snack_download_started, event.name))
 
                     is BrowserEvent.DownloadFinished -> snackbar.show(
-                        context.getString(R.string.snack_download_done, event.name),
-                        context.getString(R.string.snack_open),
+                        resources.getString(R.string.snack_download_done, event.name),
+                        resources.getString(R.string.snack_open),
                     ) { activity.openFile(event.uri, event.mimeType) }
 
                     is BrowserEvent.DownloadFailed ->
-                        snackbar.show(context.getString(R.string.snack_download_failed, event.name))
+                        snackbar.show(resources.getString(R.string.snack_download_failed, event.name))
 
-                    BrowserEvent.NoAppForLink -> snackbar.show(context.getString(R.string.snack_no_app))
+                    BrowserEvent.NoAppForLink -> snackbar.show(resources.getString(R.string.snack_no_app))
                     is BrowserEvent.PageSettled -> Unit
                 }
             }
