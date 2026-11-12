@@ -5,7 +5,11 @@ plugins {
 
 android {
     namespace = "com.oavi.browser"
-    compileSdk = 37
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 2
+        }
+    }
 
     defaultConfig {
         applicationId = "com.oavi.browser"

@@ -7,9 +7,8 @@ coreKtx = "1.19.1"
 datastore = "1.3.0"
 profileinstaller = "1.4.1"
 coroutines = "1.11.0"
-# GeckoView publishes build-stamped versions (e.g. 1NN.0.2026MMDDhhmmss). The newest
-# stable build is resolved here; CI prints the resolved version so it can be pinned.
-geckoview = "latest.release"
+# GeckoView versions carry a build stamp. This is the stable build CI resolved on 2026-11-12.
+geckoview = "160.0.20261104181552"
 junit = "4.13.2"
 
 [libraries]
