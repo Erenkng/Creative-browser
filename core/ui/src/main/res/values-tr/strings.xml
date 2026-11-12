@@ -4,7 +4,6 @@
     <string name="cd_protection">Site koruması</string>
     <string name="cd_reload">Yenile</string>
     <string name="cd_stop">Yüklemeyi durdur</string>
-    <string name="cd_tabs">%1$d sekme açık</string>
     <string name="cd_menu">Menü</string>
     <string name="cd_reader">Okuma görünümü</string>
     <string name="cd_clear">Temizle</string>
@@ -216,8 +215,8 @@
         <item quantity="one">Oavi\'yi kullanmaya başladığından beri %1$d engellendi</item>
         <item quantity="other">Oavi\'yi kullanmaya başladığından beri %1$d engellendi</item>
     </plurals>
-    <plurals name="tabs_count">
-        <item quantity="one">%1$d sekme</item>
-        <item quantity="other">%1$d sekme</item>
+    <plurals name="cd_tabs">
+        <item quantity="one">%1$d sekme açık</item>
+        <item quantity="other">%1$d sekme açık</item>
     </plurals>
 </resources>

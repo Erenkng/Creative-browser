@@ -11,7 +11,6 @@ S = {
     "cd_protection": ("Site protection", "Site koruması"),
     "cd_reload": ("Reload", "Yenile"),
     "cd_stop": ("Stop loading", "Yüklemeyi durdur"),
-    "cd_tabs": ("%1$d tabs open", "%1$d sekme açık"),
     "cd_menu": ("Menu", "Menü"),
     "cd_reader": ("Reading view", "Okuma görünümü"),
     "cd_clear": ("Clear", "Temizle"),
@@ -250,7 +249,7 @@ P = {
                            ("Bu sayfada %1$d izleyici ya da reklam engellendi", "Bu sayfada %1$d izleyici ve reklam engellendi")),
     "protection_total": (("%1$d blocked since you started using Oavi", "%1$d blocked since you started using Oavi"),
                          ("Oavi'yi kullanmaya başladığından beri %1$d engellendi", "Oavi'yi kullanmaya başladığından beri %1$d engellendi")),
-    "tabs_count": (("%1$d tab", "%1$d tabs"), ("%1$d sekme", "%1$d sekme")),
+    "cd_tabs": (("%1$d tab open", "%1$d tabs open"), ("%1$d sekme açık", "%1$d sekme açık")),
 }
 
 def android_escape(text):

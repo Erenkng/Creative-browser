@@ -87,7 +87,7 @@ Oavi bunların hepsini yapar:
 |---|---|---|
 | İçerik süreci sayısı | 4 (dört A78 çekirdeği için) | Motor varsayılanı |
 | Bellekte canlı tutulan sekme | 8 | RAM'e göre 4–8 |
-| Bellek içi önbellek | 128 MB | Motor varsayılanı |
+| Bellek içi önbellek | 64 MB (Android 17'nin uygulama bellek sınırı gözetilerek) | Motor varsayılanı |
 | Anında geri/ileri için saklanan sayfa | 6 | Motor varsayılanı |
 | Yedek içerik süreci (yeni sekme için sıcak) | Açık | Kapalı |
 | Önceden açılan bağlantı | 10 | Motor varsayılanı |
@@ -145,6 +145,21 @@ Derlemeler `keystore/oavi-sideload.keystore` ile imzalanır; böylece her yeni d
 içindir.** Uygulamayı başkalarına dağıtacaksan kendi anahtarını üret ve şu ortam
 değişkenleriyle ver: `OAVI_KEYSTORE_FILE`, `OAVI_KEYSTORE_PASSWORD`, `OAVI_KEY_ALIAS`,
 `OAVI_KEY_PASSWORD`.
+
+## Testler ve CI
+
+Her push'ta GitHub Actions şunları çalıştırır:
+
+| Adım | Ne doğrular |
+|---|---|
+| Birim testleri (`core/model`) | Adres/arama ayrımı, sekme kuralları, arşiv, öneri sıralaması, çip algılama ve performans profilleri, indirme adları, site rengi, hata sayfası |
+| Uzantı testleri (`tools/extension-test`) | Reklam engelleme kuralları, site bazında kapatma, okuma görünümü (içeriğin arındırılması dahil), karanlık sayfa — gerçek bir DOM üzerinde |
+| Debug ve release derlemesi | Uygulamanın tamamı Android 17 SDK'sı, Compose ve GeckoView'e karşı derlenir; release R8 ile küçültülür |
+| Lint | Android'in statik denetimleri |
+| Emülatörde duman testi | **Release** sürümü Android 17 emülatörüne kurulur; ilk açılış, arama motoru seçimi, başka uygulamadan gelen bağlantıyla gerçek bir sayfa, menü, sekme ızgarası ve adres alanı tek tek denenir; çökme ve cihaz profilinin motora ulaştığı kontrol edilir |
+
+Duman testi her adımda ekran görüntüsü alır; Actions çalışmasının **Artifacts** bölümünde
+`smoke-screenshots` olarak durur.
 
 ## Galaxy A55'te denerken bakılacaklar
 

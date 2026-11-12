@@ -83,7 +83,9 @@ object PerformanceProfiles {
             kind = ProfileKind.EXYNOS_1480,
             contentProcesses = if (roomy) 4 else 3,
             maxLiveSessions = if (roomy) 8 else 5,
-            memoryCacheKb = if (roomy) 131_072 else 65_536,
+            // Android 17 caps app memory by device RAM; the cache lives in the app's own
+            // process, so it stays modest. Pages themselves render in separate processes.
+            memoryCacheKb = if (roomy) 65_536 else 32_768,
             sessionHistoryViewers = if (roomy) 6 else 4,
             prelaunchContentProcess = true,
             speculativeConnections = 10,

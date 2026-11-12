@@ -24,7 +24,7 @@ seen = []
 for text in re.findall(r"text=\"([^\"]+)\"", xml) + re.findall(r"content-desc=\"([^\"]+)\"", xml):
     if text not in seen:
         seen.append(text)
-print("\n".join(seen[:60]))'
+print("\n".join(t if len(t) <= 80 else t[:79] + "…" for t in seen[:60]))'
 }
 
 # Taps the centre of the first element whose text or description contains $1.
@@ -128,7 +128,7 @@ adb shell input keyevent KEYCODE_BACK
 sleep 1
 
 step "open the tab grid"
-tap "tabs open" && sleep 3
+{ tap "tab open" || tap "tabs open"; } && sleep 3
 screen_texts
 expect "New tab"
 shot 5-tabs
@@ -161,8 +161,12 @@ return $FAILED
 main > smoke-output.log 2>&1
 RESULT=$?
 
-# With SMOKE_SCREENSHOTS=1 the screenshots are also printed, shrunk and base64-encoded, so
-# they can be read back from the job log. They come first; the walk-through follows.
+cat smoke-output.log
+echo
+if [ "$RESULT" = "0" ]; then echo "SMOKE TEST PASSED"; else echo "SMOKE TEST FAILED"; fi
+
+# With SMOKE_SCREENSHOTS=1 the screenshots are also printed, shrunk to 270 px and
+# AVIF-encoded (about 4 KB each), so they can be read back from the end of the job log.
 if [ "${SMOKE_SCREENSHOTS:-0}" = "1" ] && ls shots/*.png >/dev/null 2>&1; then
   python3 -m pip install --quiet pillow >/dev/null 2>&1
   python3 - <<'PY'
@@ -170,19 +174,15 @@ import base64, glob, io, os
 from PIL import Image
 for path in sorted(glob.glob("shots/*.png")):
     image = Image.open(path).convert("RGB")
-    width = 300
+    width = 270
     image = image.resize((width, round(image.height * width / image.width)), Image.LANCZOS)
     data = io.BytesIO()
-    image.save(data, "WEBP", quality=42, method=6)
+    image.save(data, "AVIF", quality=45, speed=4)
     text = base64.b64encode(data.getvalue()).decode()
-    print("SHOT-BEGIN " + os.path.basename(path))
+    print("SHOT-BEGIN " + os.path.basename(path).replace(".png", ".avif"))
     for start in range(0, len(text), 1800):
         print(text[start:start + 1800])
     print("SHOT-END")
 PY
 fi
-
-cat smoke-output.log
-echo
-if [ "$RESULT" = "0" ]; then echo "SMOKE TEST PASSED"; else echo "SMOKE TEST FAILED"; fi
 exit $RESULT

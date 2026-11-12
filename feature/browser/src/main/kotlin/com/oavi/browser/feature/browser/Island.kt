@@ -42,6 +42,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
@@ -288,7 +289,7 @@ private fun TabCountButton(count: Int, onClick: () -> Unit, onLongClick: () -> U
     Box(contentAlignment = Alignment.Center) {
         OaviIconButton(
             icon = R.drawable.ic_tab,
-            contentDescription = stringResource(R.string.cd_tabs, count),
+            contentDescription = pluralStringResource(R.plurals.cd_tabs, count, count),
             onClick = onClick,
             onLongClick = {
                 haptics.hold()

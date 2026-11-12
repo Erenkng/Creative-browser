@@ -4,7 +4,6 @@
     <string name="cd_protection">Site protection</string>
     <string name="cd_reload">Reload</string>
     <string name="cd_stop">Stop loading</string>
-    <string name="cd_tabs">%1$d tabs open</string>
     <string name="cd_menu">Menu</string>
     <string name="cd_reader">Reading view</string>
     <string name="cd_clear">Clear</string>
@@ -216,8 +215,8 @@
         <item quantity="one">%1$d blocked since you started using Oavi</item>
         <item quantity="other">%1$d blocked since you started using Oavi</item>
     </plurals>
-    <plurals name="tabs_count">
-        <item quantity="one">%1$d tab</item>
-        <item quantity="other">%1$d tabs</item>
+    <plurals name="cd_tabs">
+        <item quantity="one">%1$d tab open</item>
+        <item quantity="other">%1$d tabs open</item>
     </plurals>
 </resources>
