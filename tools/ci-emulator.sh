@@ -7,6 +7,9 @@ SDK="${ANDROID_HOME:?ANDROID_HOME is not set}"
 SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
 AVDMANAGER="$SDK/cmdline-tools/latest/bin/avdmanager"
 export PATH="$SDK/platform-tools:$SDK/emulator:$PATH"
+# avdmanager and the emulator disagree about the default location on CI runners; name it.
+export ANDROID_AVD_HOME="$HOME/.android/avd"
+mkdir -p "$ANDROID_AVD_HOME"
 
 echo "== system image"
 AVAILABLE=$("$SDKMANAGER" --list 2>/dev/null | grep -oE "system-images;android-3[7-9][^ |]*;x86_64" | sort -u)
@@ -35,9 +38,13 @@ echo "device profile: ${DEVICE:-default}"
 echo "== boot"
 nohup emulator -avd oavi -no-window -no-snapshot -noaudio -no-boot-anim \
   -gpu swiftshader_indirect -memory 4096 > emulator.log 2>&1 &
+EMULATOR_PID=$!
 BOOTED=0
 for _ in $(seq 1 90); do
   if [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then BOOTED=1; break; fi
+  if ! kill -0 "$EMULATOR_PID" 2>/dev/null; then
+    echo "The emulator exited before booting:"; tail -n 25 emulator.log; exit 1
+  fi
   sleep 5
 done
 if [ "$BOOTED" != "1" ]; then
