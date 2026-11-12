@@ -254,12 +254,29 @@ echo "  reading pill from y=$PILL_TOP, page's fixed bar ends at y=$BAR_COMPACT"
 within "fixed bar follows the island down to the pill" "$BAR_COMPACT" $(( PILL_TOP - $(dp 24) )) "$PILL_TOP"
 within "fixed bar moved down when the island shrank" "$BAR_COMPACT" $(( BAR_RESTING + $(dp 10) )) 99999
 
-step "private tab"
-tap "localhost" && sleep 2
-tap "Menu" && sleep 2
-tap "Private tab" && sleep 3
+step "Turkish and dark theme"
+# The phone switches to dark mode, and Oavi alone to Turkish (Android's per-app language).
+adb shell cmd uimode night yes
+adb shell cmd locale set-app-locales "$PKG" --locales tr-TR
+sleep 6
+# Bring the island back from its reading pill, unless the change already reset it.
+if ! screen_texts | grep -qF "Menü"; then tap "localhost" && sleep 2; fi
 screen_texts
-expect "keep the pages you visit"
+expect "Menü"
+shot 13-dark-turkish
+tap "Menü" && sleep 2
+screen_texts
+expect "Karanlık sayfalar"
+expect "Yeni sekme"
+shot 14-menu-dark-turkish
+adb shell input keyevent KEYCODE_BACK
+sleep 2
+
+step "private tab"
+tap "Menü" && sleep 2
+tap "Gizli sekme" && sleep 3
+screen_texts
+expect "gezdiğin sayfaları"
 # Private pages are kept out of screenshots (FLAG_SECURE), so none is taken here.
 
 step "crashes"

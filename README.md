@@ -7,7 +7,8 @@ standart profille çalışır.
 - **Motor:** GeckoView 160 (Firefox'un motoru), `arm64-v8a`
 - **Arayüz:** Kotlin + Jetpack Compose, kendi tasarım sistemi
 - **En düşük sürüm:** Android 17 (API 37)
-- **Diller:** Türkçe, İngilizce
+- **Diller:** Türkçe, İngilizce (telefon dilini izler; Ayarlar → Uygulamalar → Oavi → Dil
+  bölümünden ayrıca seçilebilir)
 
 ## APK'yı indirme
 
