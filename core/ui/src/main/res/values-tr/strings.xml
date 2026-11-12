@@ -60,6 +60,10 @@
     <string name="request_open_app_title">Başka bir uygulamada açılsın mı?</string>
     <string name="request_open_app_body">Bu bağlantı Oavi\'den çıkıp başka bir uygulama açmak istiyor.</string>
     <string name="request_open_app_confirm">Aç</string>
+    <string name="request_local_network_title">Oavi ağındaki cihazlara ulaşsın mı?</string>
+    <string name="request_local_network_body">%1$s ev ya da iş yerindeki ağında. Android, bir uygulama modem ve yazıcı gibi cihazlara bağlanmadan önce senin iznini ister.</string>
+    <string name="request_continue">Devam</string>
+    <string name="request_not_now">Şimdi değil</string>
     <string name="request_location_title">%1$s konumunu görsün mü?</string>
     <string name="request_camera_title">%1$s kameranı kullansın mı?</string>
     <string name="request_microphone_title">%1$s mikrofonunu kullansın mı?</string>
@@ -197,6 +201,8 @@
     <string name="error_security_body">Oavi bu sitenin söylediği kişi olduğunu doğrulayamadı, bu yüzden açmadı.</string>
     <string name="error_connection_title">Bu siteye ulaşılamıyor</string>
     <string name="error_connection_body">Bağlantı reddedildi ya da koptu. Biraz sonra yeniden dene.</string>
+    <string name="error_local_network_title">Bu cihaza ulaşılamıyor</string>
+    <string name="error_local_network_body">Oavi\'nin ağındaki cihazlara bağlanma izni yok. Telefonun ayarlarında Oavi için \"Yakındaki cihazlar\" iznini verip yeniden dene.</string>
     <string name="error_unknown_title">Bu sayfa açılmadı</string>
     <string name="error_unknown_body">Yüklenirken bir sorun oldu.</string>
     <plurals name="home_blocked_week">

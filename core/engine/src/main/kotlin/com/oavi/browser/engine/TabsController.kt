@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
@@ -18,6 +19,7 @@ import com.oavi.browser.model.DownloadNames
 import com.oavi.browser.model.ErrorPages
 import com.oavi.browser.model.GroupColor
 import com.oavi.browser.model.LoadErrorKind
+import com.oavi.browser.model.LocalNetwork
 import com.oavi.browser.model.PerformanceProfile
 import com.oavi.browser.model.ReaderTheme
 import com.oavi.browser.model.ResolvedInput
@@ -92,6 +94,9 @@ class TabsController(
     private var pendingUrl: String? = null
     private var pendingBlocked = 0
     private var foreground = true
+
+    /** Local hosts the user has already been asked about in this run. */
+    private val localNetworkAsked = HashSet<String>()
 
     init {
         engine.pageTools.onBlocked = { count -> countBlocked(count) }
@@ -617,6 +622,16 @@ class TabsController(
                     askOpenInApp(id, target, null)
                     return GeckoResult.fromValue(AllowOrDeny.DENY)
                 }
+                if (blockedByLocalNetwork(target)) {
+                    val host = UrlInput.hostOf(target).orEmpty()
+                    if (localNetworkAsked.add(host)) {
+                        askLocalNetwork(id, target)
+                    } else {
+                        // Android would hold the connection until it times out; say why at once.
+                        scope.launch { showErrorPage(id, target, LoadErrorKind.LOCAL_NETWORK) }
+                    }
+                    return GeckoResult.fromValue(AllowOrDeny.DENY)
+                }
                 session.settings.setUseTrackingProtection(engine.trackingEnabled() && !isProtectionOff(target))
                 return GeckoResult.fromValue(AllowOrDeny.ALLOW)
             }
@@ -658,6 +673,7 @@ class TabsController(
             ): GeckoResult<String>? {
                 val failed = uri ?: return null
                 val kind = when {
+                    blockedByLocalNetwork(failed) -> LoadErrorKind.LOCAL_NETWORK
                     error.code == WebRequestError.ERROR_OFFLINE -> LoadErrorKind.OFFLINE
                     error.code == WebRequestError.ERROR_UNKNOWN_HOST -> LoadErrorKind.NOT_FOUND
                     error.code == WebRequestError.ERROR_NET_TIMEOUT -> LoadErrorKind.TIMEOUT
@@ -880,6 +896,58 @@ class TabsController(
                 if (saved != null) BrowserEvent.DownloadFinished(name, saved, mimeType) else BrowserEvent.DownloadFailed(name),
             )
         }
+    }
+
+    // ---------------------------------------------------------------- local network (Android 17)
+
+    private fun localNetworkAllowed(): Boolean =
+        context.checkSelfPermission(LocalNetwork.PERMISSION) == PackageManager.PERMISSION_GRANTED
+
+    /** True when Android 17 would stop Oavi from reaching [url] because it is on the local network. */
+    private fun blockedByLocalNetwork(url: String): Boolean {
+        val host = UrlInput.hostOf(url) ?: return false
+        return LocalNetwork.isLocalHost(host) && !localNetworkAllowed()
+    }
+
+    /**
+     * Explains why the permission is needed, then shows the system prompt. The page is loaded
+     * once the user has answered; if access was refused it gets the explanatory error page.
+     */
+    private fun askLocalNetwork(tabId: String, url: String) {
+        updateTab(tabId) { it.copy(tab = it.tab.copy(url = url)) }
+        lateinit var explain: PageRequest
+        explain = PageRequest.Confirm(tabId, ConfirmKind.LOCAL_NETWORK, "", UrlInput.displayHost(url)) { agreed ->
+            finish(explain)
+            if (!agreed) {
+                showErrorPage(tabId, url, LoadErrorKind.LOCAL_NETWORK)
+                return@Confirm
+            }
+            lateinit var ask: PageRequest
+            ask = PageRequest.AndroidPermissions(tabId, listOf(LocalNetwork.PERMISSION)) { granted ->
+                finish(ask)
+                if (granted) navigate(tabId, url) else showErrorPage(tabId, url, LoadErrorKind.LOCAL_NETWORK)
+            }
+            post(ask)
+        }
+        post(explain)
+    }
+
+    /** Loads [url] in the tab's live page, starting one if needed. */
+    private fun navigate(tabId: String, url: String) {
+        val session = live[tabId]
+        if (session != null) session.gecko.loadUri(url) else loadUrl(tabId, url)
+    }
+
+    /** Shows Oavi's error page for [url] while the island keeps showing that address. */
+    private fun showErrorPage(tabId: String, url: String, kind: LoadErrorKind) {
+        updateTab(tabId) { it.copy(tab = it.tab.copy(url = url), loading = false) }
+        val page = ErrorPages.dataUri(ErrorPages.html(text.errorPage(kind), url))
+        val session = live[tabId] ?: run {
+            // A fresh page that loads only the error, not the address that cannot be reached.
+            val tab = _state.value.tab(tabId) ?: return
+            createSession(tab.id, tab.isPrivate, tab.desktopMode, url).also { it.gecko.open(engine.runtime) }
+        }
+        session.gecko.loadUri(page)
     }
 
     /** Links such as mailto: or a shop's app link leave the browser only after the user agrees. */

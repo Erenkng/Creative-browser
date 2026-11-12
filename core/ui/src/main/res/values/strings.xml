@@ -60,6 +60,10 @@
     <string name="request_open_app_title">Open in another app?</string>
     <string name="request_open_app_body">This link wants to leave Oavi and open another app.</string>
     <string name="request_open_app_confirm">Open</string>
+    <string name="request_local_network_title">Let Oavi reach devices on your network?</string>
+    <string name="request_local_network_body">%1$s is on your home or office network. Android asks for your permission before an app can connect to devices such as routers and printers.</string>
+    <string name="request_continue">Continue</string>
+    <string name="request_not_now">Not now</string>
     <string name="request_location_title">Let %1$s see your location?</string>
     <string name="request_camera_title">Let %1$s use your camera?</string>
     <string name="request_microphone_title">Let %1$s use your microphone?</string>
@@ -197,6 +201,8 @@
     <string name="error_security_body">Oavi couldn\'t confirm this site is who it says it is, so it didn\'t open it.</string>
     <string name="error_connection_title">Can\'t reach this site</string>
     <string name="error_connection_body">The connection was refused or dropped. Try again in a moment.</string>
+    <string name="error_local_network_title">Can\'t reach this device</string>
+    <string name="error_local_network_body">Oavi isn\'t allowed to connect to devices on your network. Allow \"Nearby devices\" for Oavi in your phone\'s settings, then try again.</string>
     <string name="error_unknown_title">This page didn\'t open</string>
     <string name="error_unknown_body">Something went wrong while loading it.</string>
     <plurals name="home_blocked_week">

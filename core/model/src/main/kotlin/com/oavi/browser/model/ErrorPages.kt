@@ -2,7 +2,17 @@ package com.oavi.browser.model
 
 import java.util.Base64
 
-enum class LoadErrorKind { OFFLINE, NOT_FOUND, TIMEOUT, SECURITY, CONNECTION, UNKNOWN }
+enum class LoadErrorKind {
+    OFFLINE,
+    NOT_FOUND,
+    TIMEOUT,
+    SECURITY,
+    CONNECTION,
+
+    /** A device on the user's network, which Oavi has not been allowed to reach. */
+    LOCAL_NETWORK,
+    UNKNOWN,
+}
 
 data class ErrorPageText(
     val title: String,

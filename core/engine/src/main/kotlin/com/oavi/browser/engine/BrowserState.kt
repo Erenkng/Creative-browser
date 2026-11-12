@@ -69,6 +69,9 @@ enum class ConfirmKind {
     LEAVE_PAGE,
     RESUBMIT_FORM,
     OPEN_IN_APP,
+
+    /** Android 17 asks before an app may reach devices on the user's network. */
+    LOCAL_NETWORK,
     LOCATION,
     CAMERA,
     MICROPHONE,

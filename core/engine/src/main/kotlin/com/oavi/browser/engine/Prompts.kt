@@ -138,13 +138,19 @@ internal class Prompts(
         val mimeTypes = prompt.mimeTypes.orEmpty().filterNotNull().filter { it.isNotBlank() }
         return ask { complete ->
             PageRequest.FilePick(tabId, multiple, mimeTypes) { uris ->
-                complete(
-                    when {
-                        uris.isEmpty() -> prompt.dismiss()
-                        multiple -> prompt.confirm(context, uris.toTypedArray())
-                        else -> prompt.confirm(context, uris.first())
-                    },
-                )
+                if (uris.isEmpty()) {
+                    complete(prompt.dismiss())
+                } else {
+                    Uploads.prepare(context, uris) { files ->
+                        complete(
+                            when {
+                                files.isEmpty() -> prompt.dismiss()
+                                multiple -> prompt.confirm(context, files.toTypedArray())
+                                else -> prompt.confirm(context, files.first())
+                            },
+                        )
+                    }
+                }
             }
         }
     }

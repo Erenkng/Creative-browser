@@ -146,6 +146,12 @@ private fun ConfirmRequest(request: PageRequest.Confirm) {
             confirm = stringResource(R.string.request_open_app_confirm)
             dismiss = stringResource(R.string.request_stay)
         }
+        ConfirmKind.LOCAL_NETWORK -> {
+            title = stringResource(R.string.request_local_network_title)
+            message = stringResource(R.string.request_local_network_body, request.host)
+            confirm = stringResource(R.string.request_continue)
+            dismiss = stringResource(R.string.request_not_now)
+        }
         ConfirmKind.LOCATION -> title = stringResource(R.string.request_location_title, request.host)
         ConfirmKind.CAMERA -> title = stringResource(R.string.request_camera_title, request.host)
         ConfirmKind.MICROPHONE -> title = stringResource(R.string.request_microphone_title, request.host)

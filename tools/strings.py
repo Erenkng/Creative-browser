@@ -79,6 +79,13 @@ S = {
     "request_open_app_title": ("Open in another app?", "Başka bir uygulamada açılsın mı?"),
     "request_open_app_body": ("This link wants to leave Oavi and open another app.", "Bu bağlantı Oavi'den çıkıp başka bir uygulama açmak istiyor."),
     "request_open_app_confirm": ("Open", "Aç"),
+    "request_local_network_title": ("Let Oavi reach devices on your network?", "Oavi ağındaki cihazlara ulaşsın mı?"),
+    "request_local_network_body": (
+        "%1$s is on your home or office network. Android asks for your permission before an app can connect to devices such as routers and printers.",
+        "%1$s ev ya da iş yerindeki ağında. Android, bir uygulama modem ve yazıcı gibi cihazlara bağlanmadan önce senin iznini ister.",
+    ),
+    "request_continue": ("Continue", "Devam"),
+    "request_not_now": ("Not now", "Şimdi değil"),
     "request_location_title": ("Let %1$s see your location?", "%1$s konumunu görsün mü?"),
     "request_camera_title": ("Let %1$s use your camera?", "%1$s kameranı kullansın mı?"),
     "request_microphone_title": ("Let %1$s use your microphone?", "%1$s mikrofonunu kullansın mı?"),
@@ -239,6 +246,11 @@ S = {
     ),
     "error_connection_title": ("Can't reach this site", "Bu siteye ulaşılamıyor"),
     "error_connection_body": ("The connection was refused or dropped. Try again in a moment.", "Bağlantı reddedildi ya da koptu. Biraz sonra yeniden dene."),
+    "error_local_network_title": ("Can't reach this device", "Bu cihaza ulaşılamıyor"),
+    "error_local_network_body": (
+        "Oavi isn't allowed to connect to devices on your network. Allow \"Nearby devices\" for Oavi in your phone's settings, then try again.",
+        "Oavi'nin ağındaki cihazlara bağlanma izni yok. Telefonun ayarlarında Oavi için \"Yakındaki cihazlar\" iznini verip yeniden dene.",
+    ),
     "error_unknown_title": ("This page didn't open", "Bu sayfa açılmadı"),
     "error_unknown_body": ("Something went wrong while loading it.", "Yüklenirken bir sorun oldu."),
 }

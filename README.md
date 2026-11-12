@@ -64,13 +64,17 @@ Renk ve saydamlık dışında süreli animasyon yoktur.
 - **Karanlık sayfalar:** Kendi karanlık teması olmayan siteleri karartır.
 - **Sekme grupları ve arşiv:** Renkli gruplar; 14 gün dokunulmayan sekmeler arşive taşınır.
   Uygulama kapanıp açıldığında sekmeler ve sayfa geçmişleri geri gelir.
-- **Diğer:** Geçmiş, yer imleri, indirme, sayfada bul, masaüstü sitesi, paylaşım, site
-  izinleri (konum, kamera, mikrofon), varsayılan tarayıcı olma.
+- **Diğer:** Geçmiş, yer imleri, indirme, dosya yükleme, sayfada bul, masaüstü sitesi,
+  paylaşım, site izinleri (konum, kamera, mikrofon), varsayılan tarayıcı olma.
 
 ### Android 17'ye özgü olanlar
 
 - **Handoff:** Okunan sayfa, kullanıcının diğer cihazındaki tarayıcıda sürdürülebilir.
-- **Yerel ağ izni** (`ACCESS_LOCAL_NETWORK`): modem/yazıcı arayüzlerine erişim için bildirilir.
+- **Yerel ağ izni** (`ACCESS_LOCAL_NETWORK`): Android 17'de ev ağındaki cihazlara (modem,
+  yazıcı, NAS) bağlanmak ayrı izin ister; izin yoksa bağlantı uzun bir zaman aşımıyla düşer.
+  Oavi, `192.168.x.x` ya da `yazici.local` gibi bir adrese gidilirken önce kısaca nedenini
+  açıklar, sonra sistem iznini ister. İzin verilmezse beklemeden ne yapılacağını anlatan bir
+  sayfa gösterir.
 - **Gelişmiş Koruma Modu:** Telefonda açıksa Oavi en sıkı ayarlarına geçer (yalnızca HTTPS,
   sıkı izleme koruması).
 - **Tetikleyici tabanlı profilleme:** Hata ayıklama sürümü soğuk açılış ve anomali izlerini

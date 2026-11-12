@@ -81,6 +81,7 @@ class AppContainer(private val app: Application) {
             LoadErrorKind.TIMEOUT -> R.string.error_timeout_title to R.string.error_timeout_body
             LoadErrorKind.SECURITY -> R.string.error_security_title to R.string.error_security_body
             LoadErrorKind.CONNECTION -> R.string.error_connection_title to R.string.error_connection_body
+            LoadErrorKind.LOCAL_NETWORK -> R.string.error_local_network_title to R.string.error_local_network_body
             LoadErrorKind.UNKNOWN -> R.string.error_unknown_title to R.string.error_unknown_body
         }
         return ErrorPageText(app.getString(title), app.getString(body), app.getString(R.string.error_retry))
