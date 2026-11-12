@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.core.Animatable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -32,6 +33,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
@@ -278,8 +280,27 @@ fun BrowserScreen(
             }
         }
 
+        // The page knows how much of its bottom the island covers, so its own bottom bars sit
+        // above the island. The value follows the island with the same spring, so those bars
+        // glide down as the island shrinks rather than jumping.
+        val islandShown = !fullscreen && !covered && !typingOnPage
+        val targetCover = when {
+            !islandShown -> 0.dp
+            mode == IslandMode.COMPACT -> IslandCompactCover
+            else -> IslandRestingCover
+        }
+        val cover = remember { Animatable(IslandRestingCover.value) }
+        LaunchedEffect(targetCover) { cover.animateTo(targetCover.value, OaviMotion.spatial()) }
+        val maxCoverPx = with(density) { IslandRestingCover.roundToPx() }
+        LaunchedEffect(engineView, maxCoverPx) {
+            val view = engineView ?: return@LaunchedEffect
+            snapshotFlow { cover.value }.collect { value ->
+                view.setBottomCover(maxCoverPx, with(density) { value.dp.roundToPx() })
+            }
+        }
+
         AnimatedVisibility(
-            visible = !fullscreen && !covered && !typingOnPage,
+            visible = islandShown,
             modifier = Modifier.align(Alignment.BottomCenter),
             enter = slideInVertically(OaviMotion.spatial()) { it } + fadeIn(OaviMotion.fade()),
             exit = slideOutVertically(OaviMotion.gentle()) { it } + fadeOut(OaviMotion.fade()),

@@ -26,6 +26,30 @@ class EngineView(context: Context) : FrameLayout(context) {
         addView(geckoView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
     }
 
+    private var coverMax = -1
+    private var coverRetracted = -1
+
+    /**
+     * Tells the engine that something floats over the bottom of the page: up to [maxPx] pixels,
+     * [coverPx] of them right now. The engine then keeps the page's own bottom bars (cookie
+     * notices, chat boxes, "Accept" buttons) above the island instead of underneath it, and
+     * moves them down as the island shrinks. This is the engine's dynamic-toolbar mechanism;
+     * the island plays the toolbar.
+     */
+    fun setBottomCover(maxPx: Int, coverPx: Int) {
+        val max = maxPx.coerceAtLeast(0)
+        if (max != coverMax) {
+            coverMax = max
+            geckoView.setDynamicToolbarMaxHeight(max)
+        }
+        // The engine counts how far the "toolbar" has moved out of the way, not how much it covers.
+        val retracted = (max - coverPx).coerceIn(0, max)
+        if (retracted != coverRetracted) {
+            coverRetracted = retracted
+            geckoView.setVerticalClipping(retracted)
+        }
+    }
+
     /** Colour shown until a page has painted, so a new tab never flashes white in dark mode. */
     fun setCoverColor(color: Int) {
         geckoView.coverUntilFirstPaint(color)

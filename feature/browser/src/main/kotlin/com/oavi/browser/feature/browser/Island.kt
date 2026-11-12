@@ -62,6 +62,16 @@ import kotlin.math.abs
 /** The shapes the island takes. It is one object that reshapes itself, never several bars. */
 enum class IslandMode { RESTING, COMPACT, SEARCH, MENU, FIND }
 
+private val IslandMargin = 10.dp
+private val RestingHeight = 60.dp
+private val CompactHeight = 34.dp
+
+/** How much of the bottom of the page the resting island covers, margins included. */
+internal val IslandRestingCover = IslandMargin * 2 + RestingHeight
+
+/** The same for the small pill shown while reading. */
+internal val IslandCompactCover = IslandMargin * 2 + CompactHeight
+
 /**
  * The island: Oavi's single control, floating at the bottom of the screen where the thumb
  * rests. It morphs between a resting capsule, a small pill while reading, the address
@@ -86,7 +96,7 @@ internal fun Island(
         modifier = modifier
             .navigationBarsPadding()
             .imePadding()
-            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .padding(horizontal = 12.dp, vertical = IslandMargin)
             .widthIn(max = 600.dp),
         contentAlignment = Alignment.BottomCenter,
     ) {
@@ -155,7 +165,7 @@ internal fun RestingIsland(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(60.dp)
+            .height(RestingHeight)
             .loadingFill(tab)
             .pointerInput(Unit) {
                 val switchAt = 64.dp.toPx()
@@ -312,7 +322,7 @@ internal fun CompactIsland(tab: TabState?, onExpand: () -> Unit) {
     val host = if (tab == null) "" else UrlInput.displayHost(tab.url)
     Row(
         modifier = Modifier
-            .height(34.dp)
+            .height(CompactHeight)
             .loadingFill(tab)
             .clickable(role = Role.Button, onClick = onExpand)
             .padding(horizontal = 14.dp),

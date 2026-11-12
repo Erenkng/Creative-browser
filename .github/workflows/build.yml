@@ -106,10 +106,14 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      # "[screenshots]" in the commit message prints every screenshot into the log,
+      # "[screenshots: 7,9]" only those steps.
       - name: Run smoke test
         env:
-          SMOKE_SCREENSHOTS: ${{ contains(github.event.head_commit.message, '[screenshots]') && '1' || '0' }}
-        run: bash tools/ci-emulator.sh app/build/outputs/apk/release/app-release.apk com.oavi.browser
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          export SMOKE_SCREENSHOTS=$(python3 -c 'import os, re; m = re.search(r"\[screenshots(?::\s*([0-9, ]+))?\]", os.environ.get("COMMIT_MESSAGE", "")); print("" if not m else (m.group(1) or "all").replace(" ", ""))')
+          bash tools/ci-emulator.sh app/build/outputs/apk/release/app-release.apk com.oavi.browser
 
       - name: Upload screenshots
         if: always()
