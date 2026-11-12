@@ -1,5 +1,10 @@
 package com.oavi.browser.feature.browser
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -42,8 +47,11 @@ import com.oavi.browser.model.DayPart
 import com.oavi.browser.model.HistoryEntry
 import com.oavi.browser.model.Tab
 import com.oavi.browser.model.UrlInput
+import com.oavi.browser.ui.ButtonKind
 import com.oavi.browser.ui.LetterTile
 import com.oavi.browser.ui.Oavi
+import com.oavi.browser.ui.OaviButton
+import com.oavi.browser.ui.OaviMotion
 import com.oavi.browser.ui.R
 import com.oavi.browser.ui.pressScale
 import java.util.Calendar
@@ -73,6 +81,8 @@ internal fun HomePage(
     onOpenUrl: (String) -> Unit,
     onSelectTab: (String) -> Unit,
     modifier: Modifier = Modifier,
+    showSwipeTip: Boolean = false,
+    onDismissSwipeTip: () -> Unit = {},
 ) {
     val colors = Oavi.colors
     BoxWithConstraints(
@@ -94,7 +104,7 @@ internal fun HomePage(
             if (private) {
                 PrivateIntro()
             } else {
-                HomeContent(resume, topSites, blockedThisWeek, onOpenUrl, onSelectTab)
+                HomeContent(resume, topSites, blockedThisWeek, onOpenUrl, onSelectTab, showSwipeTip, onDismissSwipeTip)
             }
         }
     }
@@ -107,6 +117,8 @@ private fun HomeContent(
     blockedThisWeek: Long,
     onOpenUrl: (String) -> Unit,
     onSelectTab: (String) -> Unit,
+    showSwipeTip: Boolean,
+    onDismissSwipeTip: () -> Unit,
 ) {
     val colors = Oavi.colors
     Column {
@@ -162,6 +174,47 @@ private fun HomeContent(
                 Spacer(Modifier.height(14.dp))
             }
         }
+
+        // Closest to the island, because it is about the island.
+        AnimatedVisibility(
+            visible = showSwipeTip,
+            enter = expandVertically(OaviMotion.spatial()) + fadeIn(OaviMotion.fade()),
+            exit = shrinkVertically(OaviMotion.spatial()) + fadeOut(OaviMotion.fade()),
+        ) {
+            SwipeTip(onDismissSwipeTip)
+        }
+    }
+}
+
+/**
+ * The island's swipes are invisible until someone shows them. Shown once there are two tabs
+ * to swipe between, and gone for good after the first swipe or a tap on "Got it".
+ */
+@Composable
+private fun SwipeTip(onDismiss: () -> Unit) {
+    val colors = Oavi.colors
+    Row(
+        modifier = Modifier
+            .padding(top = 18.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(colors.accentSoft)
+            .padding(start = 16.dp, top = 14.dp, bottom = 14.dp, end = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(painterResource(R.drawable.ic_tab), contentDescription = null, tint = colors.accent, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(R.string.home_tip_title), style = Oavi.type.label, color = colors.onSurface)
+            Spacer(Modifier.height(2.dp))
+            Text(stringResource(R.string.home_tip_body), style = Oavi.type.caption, color = colors.muted)
+        }
+        OaviButton(
+            text = stringResource(R.string.home_tip_dismiss),
+            onClick = onDismiss,
+            kind = ButtonKind.QUIET,
+            modifier = Modifier.height(44.dp),
+        )
     }
 }
 

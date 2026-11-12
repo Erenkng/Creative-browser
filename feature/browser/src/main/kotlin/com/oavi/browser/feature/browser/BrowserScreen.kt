@@ -241,6 +241,8 @@ fun BrowserScreen(
                 blockedThisWeek = blockedThisWeek,
                 onOpenUrl = { url -> selected?.let { controller.loadUrl(it.id, url) } ?: controller.newTab(url) },
                 onSelectTab = controller::select,
+                showSwipeTip = !settings.swipeTipDone && state.visibleTabs(private = false).size >= 2,
+                onDismissSwipeTip = { onUpdateSettings { it.copy(swipeTipDone = true) } },
             )
         }
 
@@ -322,7 +324,12 @@ fun BrowserScreen(
                         onOpenMenu = { mode = IslandMode.MENU },
                         onSwitchTab = { forward ->
                             capturePreview()
-                            if (controller.selectNeighbour(forward)) haptics.confirm() else haptics.reject()
+                            if (controller.selectNeighbour(forward)) {
+                                haptics.confirm()
+                                if (!settings.swipeTipDone) onUpdateSettings { it.copy(swipeTipDone = true) }
+                            } else {
+                                haptics.reject()
+                            }
                         },
                         onCollapse = { if (!blank) mode = IslandMode.COMPACT },
                     )

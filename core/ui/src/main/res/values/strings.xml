@@ -36,6 +36,9 @@
     <string name="home_afternoon">Good afternoon</string>
     <string name="home_evening">Good evening</string>
     <string name="home_night">Good night</string>
+    <string name="home_tip_title">Tip: the island moves with you</string>
+    <string name="home_tip_body">Swipe it left or right to switch tabs, up to see them all, down to tuck it away.</string>
+    <string name="home_tip_dismiss">Got it</string>
     <string name="home_resume_title">Pick up where you left off</string>
     <string name="home_top_sites">Places you visit often</string>
     <string name="home_private_title">Private tab</string>

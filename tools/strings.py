@@ -45,6 +45,12 @@ S = {
     "home_afternoon": ("Good afternoon", "İyi günler"),
     "home_evening": ("Good evening", "İyi akşamlar"),
     "home_night": ("Good night", "İyi geceler"),
+    "home_tip_title": ("Tip: the island moves with you", "İpucu: ada parmağınla hareket eder"),
+    "home_tip_body": (
+        "Swipe it left or right to switch tabs, up to see them all, down to tuck it away.",
+        "Sekme değiştirmek için sağa ya da sola, hepsini görmek için yukarı, küçültmek için aşağı kaydır.",
+    ),
+    "home_tip_dismiss": ("Got it", "Anladım"),
     "home_resume_title": ("Pick up where you left off", "Kaldığın yerden devam et"),
     "home_top_sites": ("Places you visit often", "Sık uğradığın yerler"),
     "home_private_title": ("Private tab", "Gizli sekme"),

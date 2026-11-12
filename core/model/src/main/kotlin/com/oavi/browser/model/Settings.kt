@@ -17,6 +17,8 @@ data class Settings(
     val lockPrivateTabs: Boolean = false,
     val collapseIslandOnScroll: Boolean = true,
     val performanceBoost: Boolean = true,
+    /** The user has switched tabs by swiping the island, or dismissed the tip about it. */
+    val swipeTipDone: Boolean = false,
     val readerFontScale: Float = 1f,
     val readerTheme: ReaderTheme = ReaderTheme.AUTO,
 )

@@ -48,6 +48,7 @@ class SettingsStore(context: Context) {
             prefs[Keys.lockPrivateTabs] = next.lockPrivateTabs
             prefs[Keys.collapseIsland] = next.collapseIslandOnScroll
             prefs[Keys.performanceBoost] = next.performanceBoost
+            prefs[Keys.swipeTipDone] = next.swipeTipDone
             prefs[Keys.readerFontScale] = next.readerFontScale
             prefs[Keys.readerTheme] = next.readerTheme.name
         }
@@ -77,6 +78,7 @@ class SettingsStore(context: Context) {
             lockPrivateTabs = prefs[Keys.lockPrivateTabs] ?: defaults.lockPrivateTabs,
             collapseIslandOnScroll = prefs[Keys.collapseIsland] ?: defaults.collapseIslandOnScroll,
             performanceBoost = prefs[Keys.performanceBoost] ?: defaults.performanceBoost,
+            swipeTipDone = prefs[Keys.swipeTipDone] ?: defaults.swipeTipDone,
             readerFontScale = prefs[Keys.readerFontScale] ?: defaults.readerFontScale,
             readerTheme = enumOr(prefs[Keys.readerTheme], defaults.readerTheme),
         )
@@ -98,6 +100,7 @@ class SettingsStore(context: Context) {
         val lockPrivateTabs = booleanPreferencesKey("lock_private_tabs")
         val collapseIsland = booleanPreferencesKey("collapse_island")
         val performanceBoost = booleanPreferencesKey("performance_boost")
+        val swipeTipDone = booleanPreferencesKey("swipe_tip_done")
         val readerFontScale = floatPreferencesKey("reader_font_scale")
         val readerTheme = stringPreferencesKey("reader_theme")
         val blockedTotal = longPreferencesKey("blocked_total")

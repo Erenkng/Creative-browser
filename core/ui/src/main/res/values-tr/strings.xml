@@ -36,6 +36,9 @@
     <string name="home_afternoon">İyi günler</string>
     <string name="home_evening">İyi akşamlar</string>
     <string name="home_night">İyi geceler</string>
+    <string name="home_tip_title">İpucu: ada parmağınla hareket eder</string>
+    <string name="home_tip_body">Sekme değiştirmek için sağa ya da sola, hepsini görmek için yukarı, küçültmek için aşağı kaydır.</string>
+    <string name="home_tip_dismiss">Anladım</string>
     <string name="home_resume_title">Kaldığın yerden devam et</string>
     <string name="home_top_sites">Sık uğradığın yerler</string>
     <string name="home_private_title">Gizli sekme</string>

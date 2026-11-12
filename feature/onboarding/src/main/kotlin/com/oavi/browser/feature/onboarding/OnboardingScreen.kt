@@ -57,6 +57,7 @@ import com.oavi.browser.ui.OaviMotion
 import com.oavi.browser.ui.R
 import com.oavi.browser.ui.pressScale
 import com.oavi.browser.ui.rememberHaptics
+import com.oavi.browser.ui.tileColorAt
 
 /**
  * First launch, in two short steps: choose a search engine (nothing is chosen for you),
@@ -172,7 +173,7 @@ private fun EngineOption(engine: SearchEngine, selected: Boolean, onClick: () ->
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        LetterTile(engine.displayName)
+        LetterTile(engine.displayName, color = tileColorAt(engine.ordinal))
         Spacer(Modifier.width(14.dp))
         Text(engine.displayName, style = Oavi.type.headline, color = colors.onSurface, modifier = Modifier.weight(1f))
         if (selected) {

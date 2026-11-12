@@ -352,15 +352,18 @@ private val tileColors = listOf(
 /** A stable colour for a site, derived from its name. */
 fun tileColor(seed: String): Color = tileColors[seed.hashCode().absoluteValue % tileColors.size]
 
+/** The n-th tile colour, for short fixed lists where every entry should look different. */
+fun tileColorAt(index: Int): Color = tileColors[index.absoluteValue % tileColors.size]
+
 /** Stands in for a site icon: the site's first letter on its own colour. */
 @Composable
-fun LetterTile(label: String, modifier: Modifier = Modifier, size: Dp = 40.dp) {
+fun LetterTile(label: String, modifier: Modifier = Modifier, size: Dp = 40.dp, color: Color = tileColor(label)) {
     val letter = label.trim().firstOrNull { it.isLetterOrDigit() }?.uppercaseChar()?.toString() ?: "·"
     Box(
         modifier = modifier
             .size(size)
             .clip(RoundedCornerShape(size * 0.32f))
-            .background(tileColor(label)),
+            .background(color),
         contentAlignment = Alignment.Center,
     ) {
         Text(
