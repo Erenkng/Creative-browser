@@ -1,0 +1,28 @@
+{
+  "manifest_version": 2,
+  "name": "Oavi page tools",
+  "version": "1.0",
+  "description": "Ad blocking, reader view and dark pages for Oavi.",
+  "browser_specific_settings": {
+    "gecko": { "id": "tools@oavi.browser" }
+  },
+  "background": {
+    "scripts": ["hosts.js", "background.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["Readability-readerable.js", "Readability.js", "content.js"],
+      "css": ["page.css"],
+      "run_at": "document_start"
+    }
+  ],
+  "permissions": [
+    "nativeMessaging",
+    "nativeMessagingFromContent",
+    "geckoViewAddons",
+    "webRequest",
+    "webRequestBlocking",
+    "<all_urls>"
+  ]
+}

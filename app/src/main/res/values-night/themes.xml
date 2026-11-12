@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="oavi_canvas">#FF121114</color>
+    <color name="oavi_brand">#FF4FD8CB</color>
+
+    <style name="Theme.Oavi" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/oavi_canvas</item>
+        <item name="android:windowSplashScreenBackground">@color/oavi_canvas</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">always</item>
+    </style>
+</resources>

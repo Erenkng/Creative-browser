@@ -1,0 +1,147 @@
+/* Forced dark pages: invert the page, then invert media back so photos keep their colours. */
+html[data-oavi-dark] {
+  filter: invert(1) hue-rotate(180deg) !important;
+  background-color: #fff !important;
+}
+
+html[data-oavi-dark] img,
+html[data-oavi-dark] video,
+html[data-oavi-dark] canvas,
+html[data-oavi-dark] iframe,
+html[data-oavi-dark] embed,
+html[data-oavi-dark] object,
+html[data-oavi-dark] svg image {
+  filter: invert(1) hue-rotate(180deg) !important;
+}
+
+/* Reader view. */
+html[data-oavi-reader] {
+  --oavi-scale: 1;
+  --oavi-bg: #fbf8f3;
+  --oavi-fg: #1b1a1f;
+  --oavi-muted: #6b6872;
+  --oavi-link: #0b7f77;
+  --oavi-rule: #e4dfd6;
+  background: var(--oavi-bg) !important;
+  color-scheme: light;
+}
+
+html[data-oavi-reader="sepia"] {
+  --oavi-bg: #f4ecd8;
+  --oavi-fg: #3b3024;
+  --oavi-muted: #7a6a56;
+  --oavi-link: #8a4b12;
+  --oavi-rule: #e0d3b6;
+}
+
+html[data-oavi-reader="dark"] {
+  --oavi-bg: #121114;
+  --oavi-fg: #e6e2ec;
+  --oavi-muted: #a09cab;
+  --oavi-link: #4fd8cb;
+  --oavi-rule: #2a2830;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-oavi-reader="auto"] {
+    --oavi-bg: #121114;
+    --oavi-fg: #e6e2ec;
+    --oavi-muted: #a09cab;
+    --oavi-link: #4fd8cb;
+    --oavi-rule: #2a2830;
+    color-scheme: dark;
+  }
+}
+
+html[data-oavi-reader] body {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: var(--oavi-bg) !important;
+  color: var(--oavi-fg) !important;
+  font: calc(1.15rem * var(--oavi-scale)) / 1.65 Georgia, "Noto Serif", serif !important;
+  -moz-text-size-adjust: none;
+  text-size-adjust: none;
+  overflow-wrap: break-word;
+}
+
+html[data-oavi-reader] .oavi-article {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.4rem 9rem;
+}
+
+html[data-oavi-reader] .oavi-title {
+  font: 700 calc(1.9rem * var(--oavi-scale)) / 1.2 system-ui, sans-serif;
+  letter-spacing: -0.015em;
+  margin: 0 0 0.75rem;
+  text-wrap: balance;
+}
+
+html[data-oavi-reader] .oavi-byline {
+  font: calc(0.9rem * var(--oavi-scale)) / 1.4 system-ui, sans-serif;
+  color: var(--oavi-muted);
+  margin: 0 0 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--oavi-rule);
+}
+
+html[data-oavi-reader] .oavi-content * {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+html[data-oavi-reader] .oavi-content p,
+html[data-oavi-reader] .oavi-content ul,
+html[data-oavi-reader] .oavi-content ol,
+html[data-oavi-reader] .oavi-content blockquote,
+html[data-oavi-reader] .oavi-content pre,
+html[data-oavi-reader] .oavi-content figure {
+  margin: 0 0 1.25em;
+}
+
+html[data-oavi-reader] .oavi-content h1,
+html[data-oavi-reader] .oavi-content h2,
+html[data-oavi-reader] .oavi-content h3,
+html[data-oavi-reader] .oavi-content h4 {
+  font-family: system-ui, sans-serif;
+  line-height: 1.25;
+  margin: 1.8em 0 0.6em;
+}
+
+html[data-oavi-reader] .oavi-content a {
+  color: var(--oavi-link);
+}
+
+html[data-oavi-reader] .oavi-content img,
+html[data-oavi-reader] .oavi-content video {
+  height: auto;
+  border-radius: 12px;
+}
+
+html[data-oavi-reader] .oavi-content figcaption {
+  font: calc(0.85rem * var(--oavi-scale)) / 1.4 system-ui, sans-serif;
+  color: var(--oavi-muted);
+  margin-top: 0.5em;
+}
+
+html[data-oavi-reader] .oavi-content blockquote {
+  border-inline-start: 3px solid var(--oavi-rule);
+  padding-inline-start: 1em;
+  color: var(--oavi-muted);
+}
+
+html[data-oavi-reader] .oavi-content pre {
+  overflow-x: auto;
+  font-size: 0.85em;
+  padding: 1em;
+  border: 1px solid var(--oavi-rule);
+  border-radius: 12px;
+}
+
+html[data-oavi-reader] .oavi-content table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}

@@ -1,0 +1,59 @@
+name: Build
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Accept Android SDK licences
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      - name: Unit tests
+        run: ./gradlew :core:model:test --console=plain
+
+      - name: Engine version
+        if: always()
+        run: ./gradlew :core:engine:dependencyInsight --configuration debugCompileClasspath --dependency geckoview --console=plain | grep -m 5 -i geckoview || true
+
+      - name: Build debug APK
+        if: always()
+        run: ./gradlew assembleDebug --console=plain
+
+      - name: Build release APK
+        if: always()
+        run: ./gradlew assembleRelease --console=plain
+
+      - name: Lint
+        if: always()
+        run: ./gradlew lintDebug --console=plain
+
+      - name: Upload APKs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: oavi-apk
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn

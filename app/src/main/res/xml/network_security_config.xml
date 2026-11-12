@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A browser has to be able to open plain-http pages when the user asks for them.
+     "HTTPS only" in Oavi's settings is enforced by the engine itself. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
