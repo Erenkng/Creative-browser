@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -263,11 +264,14 @@ fun BrowserScreen(
         // While the keyboard is up for a field on the page, the island would sit on top of what
         // is being typed, so it steps aside and returns when the keyboard closes.
         // The short wait ignores the moment when the address field's own keyboard is closing.
-        val keyboardOpen = WindowInsets.ime.getBottom(density) > 0
+        // Only the open/closed flip is observed, so the keyboard's animation does not redraw
+        // this whole screen on every frame.
+        val imeInsets = WindowInsets.ime
+        val keyboardOpen by remember(imeInsets, density) { derivedStateOf { imeInsets.getBottom(density) > 0 } }
         var typingOnPage by remember { mutableStateOf(false) }
         LaunchedEffect(keyboardOpen, mode) {
             if (keyboardOpen && (mode == IslandMode.RESTING || mode == IslandMode.COMPACT)) {
-                delay(350)
+                delay(600)
                 typingOnPage = true
             } else {
                 typingOnPage = false

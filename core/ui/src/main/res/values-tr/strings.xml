@@ -176,7 +176,7 @@
     <string name="settings_collapse_island_body">Aşağı kaydırınca küçülür, yukarı kaydırınca geri gelir.</string>
     <string name="settings_section_performance">Performans</string>
     <string name="settings_boost">Hız desteği</string>
-    <string name="settings_boost_body">Sayfalar yüklenirken hızlı çekirdekleri ve en yüksek yenileme hızını ister.</string>
+    <string name="settings_boost_body">Ekranı en yüksek yenileme hızında tutar, sayfa yüklemeyi hızlı çekirdeklere taşır. Biraz daha fazla pil kullanır.</string>
     <string name="settings_profile_exynos_1480">Bu telefonun Exynos 1480 çipine göre ayarlı</string>
     <string name="settings_profile_exynos">Bu telefonun Exynos çipine göre ayarlı</string>
     <string name="settings_profile_standard">Standart profil</string>

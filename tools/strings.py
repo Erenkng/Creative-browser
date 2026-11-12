@@ -211,7 +211,10 @@ S = {
     "settings_collapse_island_body": ("It shrinks as you scroll down and returns when you scroll up.", "Aşağı kaydırınca küçülür, yukarı kaydırınca geri gelir."),
     "settings_section_performance": ("Performance", "Performans"),
     "settings_boost": ("Speed boost", "Hız desteği"),
-    "settings_boost_body": ("Asks for the fast cores and the highest refresh rate while pages load.", "Sayfalar yüklenirken hızlı çekirdekleri ve en yüksek yenileme hızını ister."),
+    "settings_boost_body": (
+        "Keeps the screen at its highest refresh rate and moves page loading onto the fast cores. Uses a little more battery.",
+        "Ekranı en yüksek yenileme hızında tutar, sayfa yüklemeyi hızlı çekirdeklere taşır. Biraz daha fazla pil kullanır.",
+    ),
     "settings_profile_exynos_1480": ("Tuned for this phone's Exynos 1480", "Bu telefonun Exynos 1480 çipine göre ayarlı"),
     "settings_profile_exynos": ("Tuned for this phone's Exynos chip", "Bu telefonun Exynos çipine göre ayarlı"),
     "settings_profile_standard": ("Standard profile", "Standart profil"),

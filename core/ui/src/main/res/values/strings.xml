@@ -176,7 +176,7 @@
     <string name="settings_collapse_island_body">It shrinks as you scroll down and returns when you scroll up.</string>
     <string name="settings_section_performance">Performance</string>
     <string name="settings_boost">Speed boost</string>
-    <string name="settings_boost_body">Asks for the fast cores and the highest refresh rate while pages load.</string>
+    <string name="settings_boost_body">Keeps the screen at its highest refresh rate and moves page loading onto the fast cores. Uses a little more battery.</string>
     <string name="settings_profile_exynos_1480">Tuned for this phone\'s Exynos 1480</string>
     <string name="settings_profile_exynos">Tuned for this phone\'s Exynos chip</string>
     <string name="settings_profile_standard">Standard profile</string>
