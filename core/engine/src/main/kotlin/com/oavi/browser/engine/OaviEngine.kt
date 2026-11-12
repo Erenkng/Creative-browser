@@ -29,7 +29,7 @@ class OaviEngine(
 ) {
     private val appContext = context.applicationContext
 
-    internal val runtime: GeckoRuntime = GeckoRuntime.create(appContext, buildRuntimeSettings())
+    internal val runtime: GeckoRuntime = createRuntime()
     internal val pageTools = PageTools(runtime)
 
     private var current = Settings()
@@ -85,7 +85,24 @@ class OaviEngine(
     private fun effectiveProtection(settings: Settings): TrackingProtection =
         if (hardened) TrackingProtection.STRICT else settings.trackingProtection
 
-    private fun buildRuntimeSettings(): GeckoRuntimeSettings {
+    /**
+     * Starts the engine with the device profile. If the engine cannot take the profile for
+     * any reason, it is started with its own defaults instead: a browser that opens without
+     * the tuning is better than one that does not open.
+     */
+    private fun createRuntime(): GeckoRuntime {
+        val prefsFile = writeEnginePrefs()
+        if (prefsFile != null) {
+            try {
+                return GeckoRuntime.create(appContext, buildRuntimeSettings(prefsFile))
+            } catch (e: Throwable) {
+                Log.e(TAG, "The engine did not accept the device profile; starting with its defaults", e)
+            }
+        }
+        return GeckoRuntime.create(appContext, buildRuntimeSettings(null))
+    }
+
+    private fun buildRuntimeSettings(prefsFile: String?): GeckoRuntimeSettings {
         val defaults = Settings()
         val protection = effectiveProtection(defaults)
         val blocking = ContentBlocking.Settings.Builder()
@@ -99,7 +116,7 @@ class OaviEngine(
             .consoleOutput(debug)
             .remoteDebuggingEnabled(debug)
             .aboutConfigEnabled(debug)
-        writeEnginePrefs()?.let { builder.configFilePath(it) }
+        if (prefsFile != null) builder.configFilePath(prefsFile)
         return builder.build()
     }
 

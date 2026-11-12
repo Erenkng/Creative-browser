@@ -85,6 +85,15 @@ step "launch"
 adb shell am start -W -n "$PKG/$ACTIVITY" | tail -n 4
 sleep 10
 alive
+# The engine logs whether it read the device profile written by OaviEngine.
+adb logcat -d | grep -E "debug configuration|OaviEngine" | sed -E "s/^[0-9-]+ [0-9:.]+ +[0-9]+ +[0-9]+ //" | sort -u > engine-start.log
+head -n 6 engine-start.log
+if grep -q "Adding debug configuration from" engine-start.log; then
+  echo "  ok: device profile was applied"
+else
+  echo "  FAIL: the engine did not report applying the device profile"
+  FAILED=1
+fi
 screen_texts
 expect "Which search engine do you use?"
 shot 1-first-launch
