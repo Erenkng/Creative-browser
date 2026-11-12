@@ -52,9 +52,15 @@ class EngineView(context: Context) : FrameLayout(context) {
         }
     }
 
-    /** Colour shown until a page has painted, so a new tab never flashes white in dark mode. */
+    private var coverColor: Int? = null
+
+    /**
+     * Colour shown over a page that has not painted yet, so a new tab never flashes white in
+     * dark mode. It only applies to pages shown from now on: covering a page that has already
+     * painted would hide it until its next paint.
+     */
     fun setCoverColor(color: Int) {
-        geckoView.coverUntilFirstPaint(color)
+        coverColor = color
     }
 
     /** Displays the page of [tabId], or nothing when that tab has no page loaded yet. */
@@ -63,7 +69,11 @@ class EngineView(context: Context) : FrameLayout(context) {
         if (shown === session) return
         if (shown != null) geckoView.releaseSession()
         shown = session
-        if (session != null) geckoView.setSession(session)
+        if (session != null) {
+            val color = coverColor
+            if (color != null && controller.needsCover(tabId)) geckoView.coverUntilFirstPaint(color)
+            geckoView.setSession(session)
+        }
     }
 
     /** Detaches from the engine. Call when the view is going away for good. */

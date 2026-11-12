@@ -82,6 +82,18 @@ print(bottom)
 PY
 }
 
+# Prints the average brightness (0-255) of the middle of the screen, where the page is.
+page_brightness() {
+  python3 - "$1" <<'PY'
+import sys
+from PIL import Image, ImageStat
+image = Image.open(sys.argv[1]).convert("L")
+width, height = image.size
+region = image.crop((width // 10, height // 8, width * 9 // 10, height * 5 // 8))
+print(round(ImageStat.Stat(region).mean[0]))
+PY
+}
+
 # within NAME VALUE LOW HIGH: passes when LOW <= VALUE <= HIGH.
 within() {
   if [ "$2" -ge "$3" ] 2>/dev/null && [ "$2" -le "$4" ] 2>/dev/null; then
@@ -264,6 +276,7 @@ if ! screen_texts | grep -qF "Menü"; then tap "localhost" && sleep 2; fi
 screen_texts
 expect "Menü"
 shot 13-dark-turkish
+within "page still shows after the theme change" "$(red_bar_bottom shots/13-dark-turkish.png)" 1 99999
 tap "Menü" && sleep 2
 screen_texts
 expect "Karanlık sayfalar"
@@ -271,6 +284,19 @@ expect "Yeni sekme"
 shot 14-menu-dark-turkish
 adb shell input keyevent KEYCODE_BACK
 sleep 2
+
+step "switching tabs with the island"
+# Two swipes to the right go back two tabs, to example.com, which was opened earlier.
+read -r _ ISLAND_BUTTON_TOP _ ISLAND_BUTTON_BOTTOM <<< "$(bounds_of "Menü")"
+ISLAND_Y=$(( (${ISLAND_BUTTON_TOP:-2150} + ${ISLAND_BUTTON_BOTTOM:-2250}) / 2 ))
+adb shell input swipe 250 "$ISLAND_Y" 850 "$ISLAND_Y" 250
+sleep 3
+adb shell input swipe 250 "$ISLAND_Y" 850 "$ISLAND_Y" 250
+sleep 6
+screen_texts
+expect "example.com"
+shot 15-swiped-back
+within "page shows after switching back to it" "$(page_brightness shots/15-swiped-back.png)" 120 255
 
 step "private tab"
 tap "Menü" && sleep 2

@@ -72,6 +72,9 @@ class TabsController(
 ) {
     private class LiveSession(val tabId: String, val gecko: GeckoSession) {
         var pagePort: WebExtension.Port? = null
+
+        /** The engine has drawn this page at least once. */
+        var painted = false
     }
 
     private class ClosedTab(val tab: Tab, val sessionState: String?, val index: Int, val wasSelected: Boolean)
@@ -514,6 +517,9 @@ class TabsController(
 
     internal fun geckoFor(tabId: String?): GeckoSession? = if (tabId == null) null else live[tabId]?.gecko
 
+    /** True while the tab's page has not been drawn yet, so the view should cover it. */
+    internal fun needsCover(tabId: String?): Boolean = tabId != null && live[tabId]?.painted == false
+
     // ---------------------------------------------------------------- sessions
 
     private fun activate(id: String) {
@@ -759,6 +765,10 @@ class TabsController(
 
             override fun onExternalResponse(session: GeckoSession, response: WebResponse) {
                 download(response)
+            }
+
+            override fun onFirstComposite(session: GeckoSession) {
+                live[id]?.painted = true
             }
 
             override fun onCrash(session: GeckoSession) {

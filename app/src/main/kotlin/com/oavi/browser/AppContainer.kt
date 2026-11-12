@@ -1,6 +1,7 @@
 package com.oavi.browser
 
 import android.app.Application
+import android.content.res.Configuration
 import com.oavi.browser.data.BlockedStats
 import com.oavi.browser.data.DownloadWriter
 import com.oavi.browser.data.LibraryStore
@@ -69,6 +70,8 @@ class AppContainer(private val app: Application) {
     init {
         scope.launch { tabs.restore() }
     }
+
+    fun onConfigurationChanged(config: Configuration) = engine.configurationChanged(config)
 
     fun updateSettings(transform: (Settings) -> Settings) {
         scope.launch { settingsStore.update(transform) }

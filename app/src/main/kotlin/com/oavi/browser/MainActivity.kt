@@ -7,6 +7,7 @@ import android.app.HandoffActivityParams
 import android.app.SearchManager
 import android.app.role.RoleManager
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
 import android.view.WindowInsets
@@ -40,6 +41,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null) handleIntent(intent)
         setContent { OaviApp(container, this) }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        container.onConfigurationChanged(newConfig)
     }
 
     override fun onNewIntent(intent: Intent) {

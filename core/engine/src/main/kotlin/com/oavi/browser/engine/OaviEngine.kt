@@ -1,6 +1,7 @@
 package com.oavi.browser.engine
 
 import android.content.Context
+import android.content.res.Configuration
 import android.util.Log
 import com.oavi.browser.model.PerformanceProfile
 import com.oavi.browser.model.Settings
@@ -50,6 +51,14 @@ class OaviEngine(
         runtime.settings.setAllowInsecureConnections(
             if (settings.httpsOnly || hardened) GeckoRuntimeSettings.HTTPS_ONLY else GeckoRuntimeSettings.ALLOW_ALL,
         )
+    }
+
+    /**
+     * Passes on rotation, dark mode and other configuration changes. The activity handles
+     * these itself instead of restarting, so the engine has to be told.
+     */
+    fun configurationChanged(config: Configuration) {
+        runtime.configurationChanged(config)
     }
 
     /** Removes cookies, caches and site storage. [onDone] runs when the engine has finished. */
