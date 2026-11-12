@@ -65,6 +65,33 @@ for node in re.findall(r"<node [^>]*>", sys.stdin.read()):
             break' "$1"
 }
 
+# Prints the lowest screen row covered by the fixture page's red bar (#c0392b), or -1.
+red_bar_bottom() {
+  python3 - "$1" <<'PY'
+import sys
+from PIL import Image
+image = Image.open(sys.argv[1]).convert("RGB")
+width, height = image.size
+samples = range(0, width, 10)
+bottom = -1
+for y in range(height):
+    hits = sum(1 for x in samples if (lambda p: p[0] > 150 and p[1] < 90 and p[2] < 80)(image.getpixel((x, y))))
+    if hits > len(samples) * 0.6:
+        bottom = y
+print(bottom)
+PY
+}
+
+# within NAME VALUE LOW HIGH: passes when LOW <= VALUE <= HIGH.
+within() {
+  if [ "$2" -ge "$3" ] 2>/dev/null && [ "$2" -le "$4" ] 2>/dev/null; then
+    echo "  ok: $1 ($2 in $3..$4)"
+  else
+    echo "  FAIL: $1 ($2 not in $3..$4)"
+    FAILED=1
+  fi
+}
+
 expect() {
   if screen_texts | grep -qF "$1"; then
     echo "  ok: \"$1\" is on screen"
@@ -156,6 +183,9 @@ adb shell input text "oavi"
 sleep 2
 screen_texts
 shot 6-address
+# The first Back hides the keyboard, the second closes the address field.
+adb shell input keyevent KEYCODE_BACK
+sleep 1
 adb shell input keyevent KEYCODE_BACK
 sleep 1
 
@@ -173,8 +203,10 @@ tap "More" && sleep 2
 tap "Settings" && sleep 3
 screen_texts
 expect "Tracking protection"
-expect "profile"
 shot 8-settings
+adb shell input swipe 540 1900 540 500 300
+sleep 2
+expect "profile"
 adb shell input keyevent KEYCODE_BACK
 sleep 2
 
@@ -201,20 +233,29 @@ tap "Search or enter address" && sleep 2
 adb shell input text "localhost:8000/bottom.html"
 adb shell input keyevent KEYCODE_ENTER
 sleep 8
-read -r _ BAR_TOP _ BAR_BOTTOM <<< "$(bounds_of "FIXED BOTTOM BAR")"
+# The engine moves the page's fixed bars in its compositor, which accessibility bounds do
+# not show, so the bar is found in the screenshot by its colour instead.
+DENSITY=$(adb shell wm density | grep -oE "[0-9]+" | tail -n 1)
+dp() { python3 -c "print(round($1 * ${DENSITY:-160} / 160))"; }
 read -r _ MENU_TOP _ _ <<< "$(bounds_of "Menu")"
-echo "  resting island: fixed bar ${BAR_TOP:-?}-${BAR_BOTTOM:-?}, island buttons from ${MENU_TOP:-?}"
 shot 11-fixed-bar
+BAR_RESTING=$(red_bar_bottom shots/11-fixed-bar.png)
+ISLAND_TOP=$(( ${MENU_TOP:-0} - $(dp 8) ))
+echo "  resting island from y=$ISLAND_TOP, page's fixed bar ends at y=$BAR_RESTING"
+within "fixed bar sits just above the resting island" "$BAR_RESTING" $(( ISLAND_TOP - $(dp 24) )) "$ISLAND_TOP"
+
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12; do adb shell input swipe 540 1700 540 500 120; sleep 0.4; done
 sleep 3
-read -r _ END_TOP _ END_BOTTOM <<< "$(bounds_of "END OF PAGE")"
-read -r _ BAR_TOP2 _ BAR_BOTTOM2 <<< "$(bounds_of "FIXED BOTTOM BAR")"
-read -r _ PILL_TOP _ _ <<< "$(bounds_of "localhost")"
-echo "  after scrolling: end of page ${END_TOP:-?}-${END_BOTTOM:-?}, fixed bar ${BAR_TOP2:-?}-${BAR_BOTTOM2:-?}, island pill from ${PILL_TOP:-?}"
+read -r _ PILL_TEXT_TOP _ _ <<< "$(bounds_of "localhost")"
 shot 12-page-end
-screen_texts | tail -n 8
+BAR_COMPACT=$(red_bar_bottom shots/12-page-end.png)
+PILL_TOP=$(( ${PILL_TEXT_TOP:-0} - $(dp 9) ))
+echo "  reading pill from y=$PILL_TOP, page's fixed bar ends at y=$BAR_COMPACT"
+within "fixed bar follows the island down to the pill" "$BAR_COMPACT" $(( PILL_TOP - $(dp 24) )) "$PILL_TOP"
+within "fixed bar moved down when the island shrank" "$BAR_COMPACT" $(( BAR_RESTING + $(dp 10) )) 99999
 
 step "private tab"
+tap "localhost" && sleep 2
 tap "Menu" && sleep 2
 tap "Private tab" && sleep 3
 screen_texts

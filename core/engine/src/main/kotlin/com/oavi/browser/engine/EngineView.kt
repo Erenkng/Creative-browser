@@ -42,11 +42,13 @@ class EngineView(context: Context) : FrameLayout(context) {
             coverMax = max
             geckoView.setDynamicToolbarMaxHeight(max)
         }
-        // The engine counts how far the "toolbar" has moved out of the way, not how much it covers.
+        // The engine assumes the "toolbar" is fully shown and takes a negative clipping for
+        // how far it has moved out of the way (measured on the emulator: a positive value
+        // lifts the page's bottom bars instead of lowering them).
         val retracted = (max - coverPx).coerceIn(0, max)
         if (retracted != coverRetracted) {
             coverRetracted = retracted
-            geckoView.setVerticalClipping(retracted)
+            geckoView.setVerticalClipping(-retracted)
         }
     }
 

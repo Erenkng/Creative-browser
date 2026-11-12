@@ -54,6 +54,9 @@ echo "booted: Android $(adb shell getprop ro.build.version.release | tr -d '\r')
 adb shell input keyevent 82 >/dev/null 2>&1
 sleep 5
 
+# The smoke test reads screenshots with Pillow.
+python3 -m pip install --quiet pillow > /dev/null 2>&1 || true
+
 # Test pages, reachable from the emulator as http://localhost:8000/.
 python3 -m http.server 8000 --bind 127.0.0.1 --directory tools/fixtures > fixture-server.log 2>&1 &
 SERVER_PID=$!
