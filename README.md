@@ -169,7 +169,7 @@ Her push'ta GitHub Actions şunları çalıştırır:
 | Uzantı testleri (`tools/extension-test`) | Reklam engelleme kuralları, site bazında kapatma, okuma görünümü (içeriğin arındırılması dahil), karanlık sayfa — gerçek bir DOM üzerinde |
 | Debug ve release derlemesi | Uygulamanın tamamı Android 17 SDK'sı, Compose ve GeckoView'e karşı derlenir; release R8 ile küçültülür |
 | Lint | Android'in statik denetimleri |
-| Emülatörde duman testi | **Release** sürümü Android 17 emülatörüne kurulur; ilk açılış, arama motoru seçimi, başka uygulamadan gelen bağlantıyla gerçek bir sayfa, menü, sekme ızgarası, adres alanı, koruma paneli, ayarlar, yerel ağ izni akışı ve gizli sekme tek tek denenir. Altta sabit şeridi olan bir test sayfasında şeridin adanın üstünde durduğu ve ada küçülünce aşağı indiği ekran görüntüsünden ölçülür. Çökme olmadığı ve cihaz profilinin motora ulaştığı da kontrol edilir |
+| Emülatörde duman testi | **Release** sürümü Android 17 emülatörüne kurulur; ilk açılış, arama motoru seçimi, başka uygulamadan gelen bağlantıyla gerçek bir sayfa, menü, sekme ızgarası, adres alanı, koruma paneli, ayarlar, yerel ağ izni akışı ve gizli sekme tek tek denenir. Altta sabit şeridi olan bir test sayfasında şeridin adanın üstünde durduğu ve ada küçülünce aşağı indiği ekran görüntüsünden ölçülür. Ardından telefon karanlık temaya, Oavi Türkçeye alınır; ada, menü ve gizli sekme Türkçe denetlenir, sayfanın tema değişiminden sonra görünmeye devam ettiği ve adayı kaydırıp önceki sekmeye dönünce çizildiği ölçülür. Çökme olmadığı ve cihaz profilinin motora ulaştığı da kontrol edilir |
 
 Duman testi her adımda ekran görüntüsü alır; Actions çalışmasının **Artifacts** bölümünde
 `smoke-screenshots` olarak durur.
