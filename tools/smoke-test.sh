@@ -82,15 +82,16 @@ print(bottom)
 PY
 }
 
-# Prints the average brightness (0-255) of the middle of the screen, where the page is.
-page_brightness() {
+# Prints how much the middle of the screen, where the page is, varies in brightness: near 0
+# for a flat colour (an empty or covered page), well above 8 once text is drawn.
+page_detail() {
   python3 - "$1" <<'PY'
 import sys
 from PIL import Image, ImageStat
 image = Image.open(sys.argv[1]).convert("L")
 width, height = image.size
 region = image.crop((width // 10, height // 8, width * 9 // 10, height * 5 // 8))
-print(round(ImageStat.Stat(region).mean[0]))
+print(round(ImageStat.Stat(region).stddev[0]))
 PY
 }
 
@@ -315,7 +316,8 @@ sleep 6
 screen_texts
 expect "example.com"
 shot 15-swiped-back
-within "page shows after switching back to it" "$(page_brightness shots/15-swiped-back.png)" 120 255
+# example.com follows the dark theme, so the test looks for drawn content, not a light page.
+within "page shows after switching back to it" "$(page_detail shots/15-swiped-back.png)" 8 255
 
 step "private tab"
 tap "Menü" && sleep 2
