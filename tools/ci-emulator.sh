@@ -52,6 +52,10 @@ if [ "$BOOTED" != "1" ]; then
 fi
 echo "booted: Android $(adb shell getprop ro.build.version.release | tr -d '\r') (API $(adb shell getprop ro.build.version.sdk | tr -d '\r')), $(adb shell wm size | tr -d '\r')"
 adb shell input keyevent 82 >/dev/null 2>&1
+# Let first-boot work settle before the app starts, and keep background "not responding"
+# dialogs of system apps off the screen.
+timeout 180 adb shell am wait-for-broadcast-idle > /dev/null 2>&1 || true
+adb shell settings put global anr_show_background 0 > /dev/null 2>&1 || true
 sleep 5
 
 # The smoke test reads screenshots with Pillow.

@@ -122,7 +122,25 @@ alive() {
   fi
 }
 
-step() { echo; echo "== $1"; }
+# Slow CI emulators sometimes show "<system app> isn't responding" over everything; such a
+# dialog is about the emulator, not Oavi, so it is dismissed before each step.
+clear_system_dialogs() {
+  for _ in 1 2 3; do
+    if screen_texts | grep -q "responding"; then
+      echo "  (dismissing a system \"isn't responding\" dialog)"
+      tap "Wait" > /dev/null || tap "Close app" > /dev/null
+      sleep 2
+    else
+      return 0
+    fi
+  done
+}
+
+step() {
+  echo
+  echo "== $1"
+  clear_system_dialogs
+}
 
 # Saves what is on screen as shots/<name>.png.
 shot() {
@@ -138,6 +156,7 @@ adb logcat -c
 step "launch"
 adb shell am start -W -n "$PKG/$ACTIVITY" | tail -n 4
 sleep 10
+clear_system_dialogs
 alive
 # The engine logs whether it read the device profile written by OaviEngine.
 adb logcat -d | grep -E "debug configuration|OaviEngine" | sed -E "s/^[0-9-]+ [0-9:.]+ +[0-9]+ +[0-9]+ //" | sort -u > engine-start.log
