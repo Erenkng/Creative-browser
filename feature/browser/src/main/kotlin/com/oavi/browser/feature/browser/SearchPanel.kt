@@ -1,5 +1,9 @@
 package com.oavi.browser.feature.browser
 
+import android.content.Intent
+import android.speech.RecognizerIntent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -152,9 +157,44 @@ internal fun SearchPanel(
                     onClick = { field = TextFieldValue("") },
                     tint = colors.muted,
                 )
+            } else {
+                VoiceSearchButton(onResult = onSubmit)
             }
         }
     }
+}
+
+/**
+ * Speak instead of typing. Uses the phone's own speech recogniser, so nothing extra is
+ * installed and the button simply does not appear on phones without one.
+ */
+@Composable
+private fun VoiceSearchButton(onResult: (String) -> Unit) {
+    val context = LocalContext.current
+    val prompt = stringResource(R.string.voice_prompt)
+    val available = remember {
+        context.packageManager.queryIntentActivities(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH), 0).isNotEmpty()
+    }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val spoken = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+        if (!spoken.isNullOrBlank()) onResult(spoken)
+    }
+    if (!available) return
+    OaviIconButton(
+        icon = R.drawable.ic_mic,
+        contentDescription = stringResource(R.string.cd_voice_search),
+        tint = Oavi.colors.accent,
+        onClick = {
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_WEB_SEARCH)
+                .putExtra(RecognizerIntent.EXTRA_PROMPT, prompt)
+            try {
+                launcher.launch(intent)
+            } catch (_: Exception) {
+                // The recogniser went away after the check; nothing to do.
+            }
+        },
+    )
 }
 
 @Composable

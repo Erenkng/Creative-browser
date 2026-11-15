@@ -384,6 +384,29 @@ shot 30-tabs-dark-turkish
 adb shell input keyevent KEYCODE_BACK
 sleep 2
 
+step "translating a page"
+# The fixture page is in English and Oavi is now in Turkish. The engine downloads the
+# language models on first use, so this can take a while; for now the result is reported,
+# not enforced.
+tap "Menü" && sleep 2
+tap "Daha fazla" && sleep 2
+tap "Sayfayı çevir"
+TRANSLATED=0
+for _ in $(seq 1 30); do
+  sleep 4
+  if screen_texts | grep -q "Paragraf "; then
+    TRANSLATED=1
+    break
+  fi
+done
+screen_texts | grep -E "Paragraf|Paragraph|çevril|Çevril" | head -n 4
+if [ "$TRANSLATED" = "1" ]; then
+  echo "  ok: the page was translated into Turkish"
+else
+  echo "  note: the page was not translated within two minutes"
+fi
+shot 31-translated
+
 step "switching tabs with the island"
 # Two swipes to the right go back two tabs, to the 10.0.2.2 page opened earlier.
 read -r _ ISLAND_BUTTON_TOP _ ISLAND_BUTTON_BOTTOM <<< "$(bounds_of "Menü")"

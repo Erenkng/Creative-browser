@@ -70,6 +70,9 @@ function page(html, { dark = false } = {}) {
 const paragraph = "Oavi is a browser built around a single floating control that changes shape instead of adding bars. ".repeat(6);
 const article = `<!doctype html><html><head><title>A long story</title>
 <meta name="theme-color" content="#1da1f2">
+<link rel="icon" href="/favicon-16.png" sizes="16x16">
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/touch-180.png" sizes="180x180">
 <style>body{background:#fff}</style></head><body>
 <nav><a href="/">Home</a><a href="/a">A</a></nav>
 <article><h1>A long story</h1><p class="byline">By Someone</p>
@@ -82,10 +85,14 @@ console.log("content.js");
   const p = page(article);
   const first = p.sent.find(m => m.type === "page");
   check("reports the site's theme colour", first && first.themeColor === "#1da1f2", JSON.stringify(first));
+  check("picks the best bitmap icon", first && first.icon === "https://news.example/touch-180.png", JSON.stringify(first));
+  check("reports the colour at the top of the page", first && first.topColor === "rgb(255, 255, 255)", JSON.stringify(first));
   check("recognises an article", first && first.readerable === true && first.reader === false, JSON.stringify(first));
 
   p.send({ type: "config", forceDark: true });
   check("darkens a light page", p.w.document.documentElement.hasAttribute("data-oavi-dark"));
+  const darkTop = p.sent.filter(m => m.type === "top").pop();
+  check("reports the darkened top colour", darkTop && darkTop.color === "rgb(0, 0, 0)", JSON.stringify(darkTop));
   p.send({ type: "config", forceDark: false });
   check("lifts the darkening again", !p.w.document.documentElement.hasAttribute("data-oavi-dark"));
 
@@ -107,6 +114,7 @@ console.log("content.js");
 
   p.send({ type: "reader", on: true, theme: "dark", fontScale: 1 });
   check("restyles without re-parsing", root.getAttribute("data-oavi-reader") === "dark" && root.style.getPropertyValue("--oavi-scale") === "1");
+  check("reader view reports its own top colour", typeof p.last().color === "string" || typeof p.last().topColor === "string", JSON.stringify(p.last()));
   p.send({ type: "reader", on: false });
   check("leaving reader reloads the page", p.w.__reloaded === 1);
 }
@@ -115,6 +123,7 @@ console.log("content.js");
   p.send({ type: "config", forceDark: true });
   check("leaves pages with their own dark theme alone", !p.w.document.documentElement.hasAttribute("data-oavi-dark"));
   const first = p.sent.find(m => m.type === "page");
+  check("falls back to /favicon.ico", first && first.icon === "https://news.example/favicon.ico", JSON.stringify(first));
   check("short pages are not offered reader view", first && first.readerable === false && first.themeColor === null, JSON.stringify(first));
 }
 {

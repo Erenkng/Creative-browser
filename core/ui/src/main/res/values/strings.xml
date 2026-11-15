@@ -15,6 +15,8 @@
     <string name="cd_share">Share</string>
     <string name="cd_delete">Delete</string>
     <string name="cd_close_tab">Close tab</string>
+    <string name="cd_voice_search">Search by voice</string>
+    <string name="voice_prompt">Say a search or an address</string>
     <string name="search_copy_link">Copy link</string>
     <string name="search_share">Share</string>
     <string name="search_switch_to_tab">Switch to this tab</string>
@@ -28,6 +30,12 @@
     <string name="menu_find">Find in page</string>
     <string name="menu_more">More</string>
     <string name="menu_less">Less</string>
+    <string name="menu_translate">Translate page</string>
+    <string name="menu_show_original">Show original</string>
+    <string name="translate_offer">Translate into %1$s?</string>
+    <string name="translate_action">Translate</string>
+    <string name="translating">Translating…</string>
+    <string name="snack_translate_failed">Couldn\'t translate this page</string>
     <string name="menu_library">Bookmarks and history</string>
     <string name="menu_downloads">Downloads</string>
     <string name="menu_desktop_site">Desktop site</string>
@@ -91,6 +99,10 @@
     <string name="snack_no_app">No app on this phone can open that link</string>
     <string name="snack_history_cleared">History cleared</string>
     <string name="snack_site_data_cleared">Cookies and site data cleared</string>
+    <string name="shortcut_new_tab">New tab</string>
+    <string name="shortcut_new_tab_long">Open a new tab</string>
+    <string name="shortcut_private_tab">Private tab</string>
+    <string name="shortcut_private_tab_long">Open a private tab</string>
     <string name="tabs_normal">Tabs</string>
     <string name="tabs_private">Private</string>
     <string name="tabs_all">All</string>
@@ -177,6 +189,11 @@
     <string name="settings_theme_system">Follow phone</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
+    <string name="settings_text_size">Text size on pages</string>
+    <string name="settings_text_size_body">Follow the phone\'s font size, or choose your own.</string>
+    <string name="settings_text_size_phone">Like the phone</string>
+    <string name="settings_zoom_everywhere">Zoom on every site</string>
+    <string name="settings_zoom_everywhere_body">Pinch to zoom even where a site turns it off.</string>
     <string name="settings_dark_pages">Dark pages</string>
     <string name="settings_dark_pages_body">Darkens sites that have no dark theme of their own.</string>
     <string name="settings_collapse_island">Tuck the island away while reading</string>

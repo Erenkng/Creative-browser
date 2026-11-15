@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.res.Configuration
 import com.oavi.browser.data.BlockedStats
 import com.oavi.browser.data.DownloadWriter
+import com.oavi.browser.data.IconStore
 import com.oavi.browser.data.LibraryStore
 import com.oavi.browser.data.OaviDatabase
 import com.oavi.browser.data.SettingsStore
@@ -41,6 +42,7 @@ class AppContainer(private val app: Application) {
 
     private val database = OaviDatabase(app)
     val library = LibraryStore(database)
+    val icons = IconStore(app)
     private val settingsStore = SettingsStore(app)
 
     /** The saved settings, or null for the instant before they have been read. */
@@ -58,6 +60,7 @@ class AppContainer(private val app: Application) {
         tabStore = TabStore(database),
         library = library,
         thumbnails = ThumbnailStore(app),
+        icons = icons,
         downloads = DownloadWriter(app),
         settingsStore = settingsStore,
         settings = settings,

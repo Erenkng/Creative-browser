@@ -64,6 +64,14 @@ android {
         compose = true
         buildConfig = true
     }
+
+    packaging {
+        jniLibs {
+            // The engine's native code is stored compressed: the APK downloads at about a third
+            // of the size and the phone unpacks it once, at install time.
+            useLegacyPackaging = true
+        }
+    }
 }
 
 dependencies {

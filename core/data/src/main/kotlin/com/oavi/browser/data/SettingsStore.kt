@@ -49,6 +49,8 @@ class SettingsStore(context: Context) {
             prefs[Keys.collapseIsland] = next.collapseIslandOnScroll
             prefs[Keys.performanceBoost] = next.performanceBoost
             prefs[Keys.swipeTipDone] = next.swipeTipDone
+            prefs[Keys.textScale] = next.textScale
+            prefs[Keys.zoomEverywhere] = next.zoomEverywhere
             prefs[Keys.readerFontScale] = next.readerFontScale
             prefs[Keys.readerTheme] = next.readerTheme.name
         }
@@ -79,6 +81,8 @@ class SettingsStore(context: Context) {
             collapseIslandOnScroll = prefs[Keys.collapseIsland] ?: defaults.collapseIslandOnScroll,
             performanceBoost = prefs[Keys.performanceBoost] ?: defaults.performanceBoost,
             swipeTipDone = prefs[Keys.swipeTipDone] ?: defaults.swipeTipDone,
+            textScale = prefs[Keys.textScale] ?: defaults.textScale,
+            zoomEverywhere = prefs[Keys.zoomEverywhere] ?: defaults.zoomEverywhere,
             readerFontScale = prefs[Keys.readerFontScale] ?: defaults.readerFontScale,
             readerTheme = enumOr(prefs[Keys.readerTheme], defaults.readerTheme),
         )
@@ -101,6 +105,8 @@ class SettingsStore(context: Context) {
         val collapseIsland = booleanPreferencesKey("collapse_island")
         val performanceBoost = booleanPreferencesKey("performance_boost")
         val swipeTipDone = booleanPreferencesKey("swipe_tip_done")
+        val textScale = floatPreferencesKey("text_scale")
+        val zoomEverywhere = booleanPreferencesKey("zoom_everywhere")
         val readerFontScale = floatPreferencesKey("reader_font_scale")
         val readerTheme = stringPreferencesKey("reader_theme")
         val blockedTotal = longPreferencesKey("blocked_total")

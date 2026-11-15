@@ -9,6 +9,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
 import com.oavi.browser.data.DownloadWriter
+import com.oavi.browser.data.IconStore
 import com.oavi.browser.data.LibraryStore
 import com.oavi.browser.data.SettingsStore
 import com.oavi.browser.data.TabStore
@@ -44,6 +45,7 @@ import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.ContentBlocking
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoSession
+import org.mozilla.geckoview.TranslationsController
 import org.mozilla.geckoview.WebExtension
 import org.mozilla.geckoview.WebRequestError
 import org.mozilla.geckoview.WebResponse
@@ -62,6 +64,7 @@ class TabsController(
     private val tabStore: TabStore,
     private val library: LibraryStore,
     private val thumbnails: ThumbnailStore,
+    private val icons: IconStore,
     private val downloads: DownloadWriter,
     private val settingsStore: SettingsStore,
     private val settings: StateFlow<Settings>,
@@ -95,8 +98,12 @@ class TabsController(
     private var protectionOffHosts: Set<String> = emptySet()
     private var lastClosed: List<ClosedTab> = emptyList()
     private var pendingUrl: String? = null
+    private var pendingNewTab: Boolean? = null
     private var pendingBlocked = 0
     private var foreground = true
+
+    /** Sites whose icon has been looked for in this run. */
+    private val iconLookups = HashSet<String>()
 
     /** Local hosts the user has already been asked about in this run. */
     private val localNetworkAsked = HashSet<String>()
@@ -144,11 +151,23 @@ class TabsController(
 
         val incoming = pendingUrl
         pendingUrl = null
+        val wantedNewTab = pendingNewTab
+        pendingNewTab = null
         when {
             incoming != null -> newTab(incoming)
+            wantedNewTab != null -> newTab(private = wantedNewTab)
             selected == null -> newTab()
             else -> activate(selected)
         }
+    }
+
+    /** Opens an empty tab, as the home screen shortcuts ask; waits for restored tabs if needed. */
+    fun openNewTab(private: Boolean) {
+        if (!_state.value.ready) {
+            pendingNewTab = private
+            return
+        }
+        newTab(private = private)
     }
 
     /** Opens an address that arrived from another app (a tapped link, a share, a web search). */
@@ -424,6 +443,47 @@ class TabsController(
         updateTab(selected.id) { it.copy(find = null) }
     }
 
+    // ---------------------------------------------------------------- translation
+
+    /**
+     * Translates the current page into [language] on the device; the engine fetches the
+     * language models the first time a pair is used.
+     */
+    fun translate(language: String) {
+        val selected = _state.value.selected ?: return
+        val session = live[selected.id] ?: return
+        val from = selected.pageLanguage
+        val translator = session.gecko.sessionTranslation
+        if (from == null || translator == null || from == language) {
+            _events.tryEmit(BrowserEvent.TranslationFailed)
+            return
+        }
+        updateTab(selected.id) { it.copy(translating = true, translateOffered = false) }
+        translator.translate(from, language, null).accept(
+            { },
+            { _ ->
+                updateTab(selected.id) { it.copy(translating = false) }
+                _events.tryEmit(BrowserEvent.TranslationFailed)
+            },
+        )
+    }
+
+    fun showOriginal() {
+        val selected = _state.value.selected ?: return
+        val translator = live[selected.id]?.gecko?.sessionTranslation ?: return
+        translator.restoreOriginalPage().accept(
+            { updateTab(selected.id) { it.copy(translatedTo = null, translating = false) } },
+            { },
+        )
+    }
+
+    fun dismissTranslateOffer() {
+        val selected = _state.value.selected ?: return
+        updateTab(selected.id) { it.copy(translateOffered = false) }
+    }
+
+    private fun primaryLanguage(tag: String): String = tag.substringBefore('-').substringBefore('_').lowercase()
+
     // ---------------------------------------------------------------- groups and archive
 
     fun createGroup(name: String, color: GroupColor, tabIds: List<String>): String {
@@ -605,6 +665,11 @@ class TabsController(
                         readerActive = false,
                         readerAvailable = false,
                         themeColor = null,
+                        topColor = null,
+                        pageLanguage = null,
+                        translateOffered = false,
+                        translating = false,
+                        translatedTo = null,
                         find = null,
                     )
                 }
@@ -795,6 +860,34 @@ class TabsController(
             }
         })
 
+        gecko.setTranslationsSessionDelegate(object : TranslationsController.SessionTranslation.Delegate {
+            override fun onOfferTranslate(session: GeckoSession) {
+                updateTab(id) { if (it.translatedTo == null) it.copy(translateOffered = true) else it }
+            }
+
+            override fun onTranslationStateChange(
+                session: GeckoSession,
+                translationState: TranslationsController.SessionTranslation.TranslationState?,
+            ) {
+                val state = translationState ?: return
+                val detected = state.detectedLanguages?.docLangTag?.let(::primaryLanguage)
+                val pair = state.requestedTranslationPair
+                val failed = state.error != null
+                updateTab(id) {
+                    it.copy(
+                        pageLanguage = detected ?: it.pageLanguage,
+                        translating = pair != null && !state.hasVisibleChange && !failed,
+                        translatedTo = when {
+                            pair == null || failed -> null
+                            state.hasVisibleChange -> pair.toLanguage?.let(::primaryLanguage)
+                            else -> it.translatedTo
+                        },
+                    )
+                }
+                if (failed && pair != null) _events.tryEmit(BrowserEvent.TranslationFailed)
+            }
+        })
+
         gecko.setPromptDelegate(Prompts(context, id, ::post, ::finish))
         gecko.setPermissionDelegate(Permissions(id, ::post, ::finish))
 
@@ -828,15 +921,39 @@ class TabsController(
 
     private fun onPageMessage(tabId: String, message: Any) {
         val json = message as? JSONObject ?: return
-        if (json.optString("type") != "page") return
-        val color = CssColor.parse(if (json.isNull("themeColor")) null else json.optString("themeColor"))
-            ?.takeIf { CssColor.usableAsAccent(it) }
-        updateTab(tabId) {
-            it.copy(
-                themeColor = color,
-                readerAvailable = json.optBoolean("readerable"),
-                readerActive = json.optBoolean("reader"),
-            )
+        when (json.optString("type")) {
+            "page" -> {
+                val color = CssColor.parse(if (json.isNull("themeColor")) null else json.optString("themeColor"))
+                    ?.takeIf { CssColor.usableAsAccent(it) }
+                val top = CssColor.parse(json.optString("topColor"))
+                val declared = json.optString("lang").takeIf { it.isNotBlank() }?.let(::primaryLanguage)
+                updateTab(tabId) {
+                    it.copy(
+                        themeColor = color,
+                        topColor = top ?: it.topColor,
+                        pageLanguage = it.pageLanguage ?: declared,
+                        readerAvailable = json.optBoolean("readerable"),
+                        readerActive = json.optBoolean("reader"),
+                    )
+                }
+                if (!json.isNull("icon")) lookUpIcon(tabId, json.optString("icon"))
+            }
+            "top" -> {
+                val top = CssColor.parse(json.optString("color")) ?: return
+                updateTab(tabId) { it.copy(topColor = top) }
+            }
+        }
+    }
+
+    private fun lookUpIcon(tabId: String, iconUrl: String) {
+        val tab = _state.value.tab(tabId) ?: return
+        if (tab.isPrivate || !iconUrl.startsWith("http")) return
+        val host = UrlInput.hostOf(tab.url)?.removePrefix("www.") ?: return
+        if (!iconLookups.add(host)) return
+        scope.launch {
+            if (icons.has(host)) return@launch
+            val icon = engine.downloadIcon(iconUrl) ?: return@launch
+            icons.save(host, icon)
         }
     }
 

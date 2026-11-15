@@ -1,18 +1,27 @@
 package com.oavi.browser.engine
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.content.res.Configuration
 import android.util.Log
 import com.oavi.browser.model.PerformanceProfile
 import com.oavi.browser.model.Settings
 import com.oavi.browser.model.ThemeMode
 import com.oavi.browser.model.TrackingProtection
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import org.mozilla.geckoview.ContentBlocking
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoRuntimeSettings
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSessionSettings
+import org.mozilla.geckoview.GeckoWebExecutor
 import org.mozilla.geckoview.StorageController
+import org.mozilla.geckoview.WebRequest
+import org.mozilla.geckoview.WebResponse
+import kotlin.coroutines.resume
 import java.io.File
 
 /**
@@ -48,6 +57,14 @@ class OaviEngine(
         blocking.setEnhancedTrackingProtectionLevel(etpLevel(protection))
         blocking.setStrictSocialTrackingProtection(protection == TrackingProtection.STRICT)
         runtime.settings.setPreferredColorScheme(colorScheme(settings.themeMode))
+        // Text size either follows the phone's font size or uses the user's own factor.
+        if (settings.textScale > 0f) {
+            runtime.settings.setAutomaticFontSizeAdjustment(false)
+            runtime.settings.setFontSizeFactor(settings.textScale)
+        } else {
+            runtime.settings.setAutomaticFontSizeAdjustment(true)
+        }
+        runtime.settings.setForceUserScalableEnabled(settings.zoomEverywhere)
         runtime.settings.setAllowInsecureConnections(
             if (settings.httpsOnly || hardened) GeckoRuntimeSettings.HTTPS_ONLY else GeckoRuntimeSettings.ALLOW_ALL,
         )
@@ -59,6 +76,50 @@ class OaviEngine(
      */
     fun configurationChanged(config: Configuration) {
         runtime.configurationChanged(config)
+        runtime.settings.setLocales(languages(config))
+    }
+
+    /** The app's languages, best first, which sites receive as the preferred languages. */
+    private fun languages(config: Configuration): Array<String> {
+        val tags = (0 until config.locales.size()).map { config.locales[it].toLanguageTag() }
+        return tags.ifEmpty { listOf("en-US") }.toTypedArray()
+    }
+
+    private val executor by lazy { GeckoWebExecutor(runtime) }
+
+    /**
+     * Fetches a site icon without cookies or credentials, and decodes it. Returns null when
+     * the icon is missing, too large, or not a bitmap Android can read.
+     */
+    suspend fun downloadIcon(url: String): Bitmap? {
+        val response = suspendCancellableCoroutine<WebResponse?> { continuation ->
+            try {
+                executor.fetch(WebRequest(url), GeckoWebExecutor.FETCH_FLAGS_ANONYMOUS).accept(
+                    { continuation.resume(it) },
+                    { continuation.resume(null) },
+                )
+            } catch (_: RuntimeException) {
+                continuation.resume(null)
+            }
+        } ?: return null
+        return withContext(Dispatchers.IO) {
+            val body = response.body
+            try {
+                if (response.statusCode !in 200..299 || body == null) {
+                    null
+                } else {
+                    val bytes = body.readNBytes(MAX_ICON_BYTES)
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                }
+            } catch (_: Exception) {
+                null
+            } finally {
+                try {
+                    body?.close()
+                } catch (_: Exception) {
+                }
+            }
+        }
     }
 
     /** Removes cookies, caches and site storage. [onDone] runs when the engine has finished. */
@@ -121,6 +182,7 @@ class OaviEngine(
             .cookieBehavior(ContentBlocking.CookieBehavior.ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS)
             .build()
         val builder = GeckoRuntimeSettings.Builder()
+            .locales(languages(appContext.resources.configuration))
             .contentBlocking(blocking)
             .consoleOutput(debug)
             .remoteDebuggingEnabled(debug)
@@ -137,6 +199,9 @@ class OaviEngine(
         val file = File(appContext.filesDir, "engine-prefs.yaml")
         val body = buildString {
             append("prefs:\n")
+            // On-device page translation, and its offer on pages in another language.
+            append("  browser.translations.enable: true\n")
+            append("  browser.translations.automaticallyPopup: true\n")
             for ((key, value) in profile.enginePrefs()) {
                 append("  ").append(key).append(": ").append(value.toString()).append('\n')
             }
@@ -168,5 +233,6 @@ class OaviEngine(
 
     private companion object {
         const val TAG = "OaviEngine"
+        const val MAX_ICON_BYTES = 256 * 1024
     }
 }

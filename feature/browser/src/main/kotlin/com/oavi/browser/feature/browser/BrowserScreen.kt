@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -15,9 +17,13 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
@@ -36,8 +42,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -102,6 +111,10 @@ fun BrowserScreen(
     val blank = selected == null || selected.isBlank
 
     var mode by rememberSaveable { mutableStateOf(IslandMode.RESTING) }
+    // Pages are translated into the language the app is shown in.
+    val appLocale = LocalConfiguration.current.locales[0]
+    val appLanguage = appLocale.language
+    val appLanguageName = appLocale.getDisplayLanguage(appLocale).replaceFirstChar { it.titlecase(appLocale) }
     var engineView by remember { mutableStateOf<EngineView?>(null) }
     val currentMode by rememberUpdatedState(mode)
     val collapseOnScroll by rememberUpdatedState(settings.collapseIslandOnScroll && !blank)
@@ -231,6 +244,16 @@ fun BrowserScreen(
             },
         )
 
+        // The strip under the status bar continues the top of the page, so there is no seam
+        // between the system bar and a white (or dark, or coloured) page.
+        if (!fullscreen) {
+            StatusStrip(
+                color = selected?.topColor?.takeIf { !blank && mode != IslandMode.SEARCH }?.let { Color(it) }
+                    ?: colors.background,
+                modifier = Modifier.align(Alignment.TopCenter),
+            )
+        }
+
         AnimatedVisibility(visible = blank && !fullscreen, enter = fadeIn(OaviMotion.fade()), exit = fadeOut(OaviMotion.fade())) {
             HomePage(
                 private = selected?.isPrivate == true,
@@ -281,6 +304,22 @@ fun BrowserScreen(
                 typingOnPage = false
             }
         }
+
+        // A page in another language gets a quiet offer to translate it into the app's language.
+        val offerTranslation = selected != null && !blank && !fullscreen && !covered && !typingOnPage && mode == IslandMode.RESTING &&
+            selected.translatedTo == null && (selected.translateOffered || selected.translating) &&
+            selected.pageLanguage != appLanguage
+        TranslatePill(
+            visible = offerTranslation,
+            translating = selected?.translating == true,
+            languageName = appLanguageName,
+            onTranslate = { controller.translate(appLanguage) },
+            onDismiss = controller::dismissTranslateOffer,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(bottom = IslandRestingCover + 6.dp),
+        )
 
         // The page knows how much of its bottom the island covers, so its own bottom bars sit
         // above the island. The value follows the island with the same spring, so those bars
@@ -399,6 +438,9 @@ fun BrowserScreen(
                             onLibrary = close(navigation.onOpenLibrary),
                             onDownloads = close(navigation.onOpenDownloads),
                             onToggleDesktop = close(controller::toggleDesktopMode),
+                            onTranslate = close {
+                                if (selected?.translatedTo != null) controller.showOriginal() else controller.translate(appLanguage)
+                            },
                             onSettings = close(navigation.onOpenSettings),
                             onClose = { mode = IslandMode.RESTING },
                         ),
@@ -431,6 +473,17 @@ fun BrowserScreen(
             )
         }
     }
+}
+
+@Composable
+private fun StatusStrip(color: Color, modifier: Modifier = Modifier) {
+    val animated by animateColorAsState(color, tween(220), label = "statusStrip")
+    Box(
+        modifier
+            .fillMaxWidth()
+            .windowInsetsTopHeight(WindowInsets.statusBars)
+            .drawBehind { drawRect(animated) },
+    )
 }
 
 private fun copyToClipboard(context: Context, text: String) {

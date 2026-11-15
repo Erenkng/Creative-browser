@@ -48,7 +48,7 @@ import com.oavi.browser.model.HistoryEntry
 import com.oavi.browser.model.Tab
 import com.oavi.browser.model.UrlInput
 import com.oavi.browser.ui.ButtonKind
-import com.oavi.browser.ui.LetterTile
+import com.oavi.browser.ui.SiteIcon
 import com.oavi.browser.ui.Oavi
 import com.oavi.browser.ui.OaviButton
 import com.oavi.browser.ui.OaviMotion
@@ -233,7 +233,7 @@ private fun ResumeCard(tab: Tab, onClick: () -> Unit) {
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        LetterTile(host.ifEmpty { tab.title })
+        SiteIcon(host, label = host.ifEmpty { tab.title })
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(tab.label, style = Oavi.type.body, color = colors.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -255,7 +255,7 @@ private fun SiteShortcut(site: HistoryEntry, modifier: Modifier, onClick: () -> 
             .padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        LetterTile(host, size = 52.dp)
+        SiteIcon(host, size = 52.dp)
         Spacer(Modifier.height(6.dp))
         Text(
             text = UrlInput.baseDomain(host).substringBefore('.'),

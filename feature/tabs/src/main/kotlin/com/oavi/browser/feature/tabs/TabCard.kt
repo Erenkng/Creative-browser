@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.dp
 import com.oavi.browser.engine.TabState
 import com.oavi.browser.engine.TabsController
 import com.oavi.browser.model.UrlInput
-import com.oavi.browser.ui.LetterTile
+import com.oavi.browser.ui.SiteIcon
 import com.oavi.browser.ui.Oavi
 import com.oavi.browser.ui.OaviIconButton
 import com.oavi.browser.ui.OaviMotion
@@ -136,7 +136,7 @@ internal fun TabCard(
                             modifier = Modifier.size(28.dp),
                         )
                     } else {
-                        LetterTile(host.ifEmpty { title }, size = 56.dp)
+                        SiteIcon(host, size = 56.dp, label = host.ifEmpty { title })
                     }
                 }
             }
@@ -165,6 +165,10 @@ internal fun TabCard(
                         .clip(CircleShape)
                         .background(groupColor),
                 )
+                Spacer(Modifier.width(6.dp))
+            }
+            if (host.isNotEmpty()) {
+                SiteIcon(host, size = 18.dp)
                 Spacer(Modifier.width(6.dp))
             }
             Text(

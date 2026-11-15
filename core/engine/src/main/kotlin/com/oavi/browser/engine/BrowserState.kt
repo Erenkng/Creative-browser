@@ -20,6 +20,15 @@ data class TabState(
     val readerAvailable: Boolean = false,
     val readerActive: Boolean = false,
     val themeColor: Int? = null,
+    /** The colour at the top of the visible page, continued under the status bar. */
+    val topColor: Int? = null,
+    /** The page's language as the engine detected it (or the page declares it), e.g. "en". */
+    val pageLanguage: String? = null,
+    /** The engine suggests translating this page into the user's language. */
+    val translateOffered: Boolean = false,
+    val translating: Boolean = false,
+    /** The language the page is currently shown in, when it has been translated. */
+    val translatedTo: String? = null,
     val fullscreen: Boolean = false,
     val desktopMode: Boolean = false,
     val crashed: Boolean = false,
@@ -59,6 +68,7 @@ sealed interface BrowserEvent {
     data class DownloadFinished(val name: String, val uri: Uri, val mimeType: String?) : BrowserEvent
     data class DownloadFailed(val name: String) : BrowserEvent
     data object NoAppForLink : BrowserEvent
+    data object TranslationFailed : BrowserEvent
     /** The page finished loading; a good moment to refresh its preview image. */
     data class PageSettled(val tabId: String) : BrowserEvent
 }

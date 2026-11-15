@@ -19,6 +19,10 @@ data class Settings(
     val performanceBoost: Boolean = true,
     /** The user has switched tabs by swiping the island, or dismissed the tip about it. */
     val swipeTipDone: Boolean = false,
+    /** Page text size as a factor of normal; 0 follows the phone's own font size. */
+    val textScale: Float = 0f,
+    /** Pinch to zoom even on sites that turn it off. */
+    val zoomEverywhere: Boolean = true,
     val readerFontScale: Float = 1f,
     val readerTheme: ReaderTheme = ReaderTheme.AUTO,
 )

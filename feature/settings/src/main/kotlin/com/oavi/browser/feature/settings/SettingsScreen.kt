@@ -1,9 +1,9 @@
 package com.oavi.browser.feature.settings
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.oavi.browser.model.ProfileKind
+import kotlin.math.abs
+import kotlin.math.roundToInt
 import com.oavi.browser.model.SearchEngine
 import com.oavi.browser.model.Settings
 import com.oavi.browser.model.ThemeMode
@@ -132,6 +134,33 @@ fun SettingsScreen(
                 ThemeChip(ThemeMode.DARK, R.string.settings_theme_dark, settings, onUpdate)
             }
             Spacer(Modifier.height(6.dp))
+            OaviRow(
+                title = stringResource(R.string.settings_text_size),
+                subtitle = stringResource(R.string.settings_text_size_body),
+                icon = R.drawable.ic_text_size,
+            )
+            ChipRow {
+                OaviChip(
+                    text = stringResource(R.string.settings_text_size_phone),
+                    selected = settings.textScale <= 0f,
+                    onClick = { onUpdate { it.copy(textScale = 0f) } },
+                )
+                for (scale in TextScales) {
+                    OaviChip(
+                        text = "${(scale * 100).roundToInt()}%",
+                        selected = settings.textScale > 0f && abs(settings.textScale - scale) < 0.01f,
+                        onClick = { onUpdate { it.copy(textScale = scale) } },
+                    )
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            OaviSwitchRow(
+                title = stringResource(R.string.settings_zoom_everywhere),
+                subtitle = stringResource(R.string.settings_zoom_everywhere_body),
+                icon = R.drawable.ic_find,
+                checked = settings.zoomEverywhere,
+                onCheckedChange = { value -> onUpdate { it.copy(zoomEverywhere = value) } },
+            )
             OaviSwitchRow(
                 title = stringResource(R.string.settings_dark_pages),
                 subtitle = stringResource(R.string.settings_dark_pages_body),
@@ -202,14 +231,18 @@ fun SettingsScreen(
     )
 }
 
+private val TextScales = listOf(0.9f, 1f, 1.15f, 1.3f, 1.5f)
+
+/** Choices laid out in lines that wrap, so every option is visible without scrolling sideways. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ChipRow(content: @Composable () -> Unit) {
-    Row(
+    FlowRow(
         modifier = Modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
             .padding(horizontal = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         content()
     }

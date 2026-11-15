@@ -61,6 +61,7 @@ internal class MenuActions(
     val onLibrary: () -> Unit,
     val onDownloads: () -> Unit,
     val onToggleDesktop: () -> Unit,
+    val onTranslate: () -> Unit,
     val onSettings: () -> Unit,
     val onClose: () -> Unit,
 )
@@ -120,6 +121,13 @@ internal fun MenuPanel(
             exit = shrinkVertically(OaviMotion.spatial()) + fadeOut(OaviMotion.fade()),
         ) {
             Column(Modifier.padding(top = 10.dp)) {
+                if (onPage) {
+                    OaviRow(
+                        title = stringResource(if (tab?.translatedTo != null) R.string.menu_show_original else R.string.menu_translate),
+                        icon = R.drawable.ic_translate,
+                        onClick = actions.onTranslate,
+                    )
+                }
                 OaviRow(stringResource(R.string.menu_library), icon = R.drawable.ic_history, onClick = actions.onLibrary)
                 OaviRow(stringResource(R.string.menu_downloads), icon = R.drawable.ic_download, onClick = actions.onDownloads)
                 OaviRow(

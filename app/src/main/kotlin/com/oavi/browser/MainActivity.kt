@@ -4,12 +4,14 @@ import android.app.DownloadManager
 import android.app.HandoffActivityData
 import android.app.HandoffActivityDataRequestInfo
 import android.app.HandoffActivityParams
+import android.app.PictureInPictureParams
 import android.app.SearchManager
 import android.app.role.RoleManager
 import android.content.Intent
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
+import android.util.Rational
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
@@ -98,8 +100,27 @@ class MainActivity : ComponentActivity() {
         container.loadBoost?.start(RefreshRate.frameIntervalNanos(window))
     }
 
+    /**
+     * While a page is full screen (usually a video), leaving Oavi shrinks it into a small
+     * floating window instead of stopping it.
+     */
+    private fun updatePictureInPicture(fullscreen: Boolean) {
+        try {
+            setPictureInPictureParams(
+                PictureInPictureParams.Builder()
+                    .setAspectRatio(Rational(16, 9))
+                    .setAutoEnterEnabled(fullscreen)
+                    .setSeamlessResizeEnabled(true)
+                    .build(),
+            )
+        } catch (_: RuntimeException) {
+            // Picture-in-picture is switched off for Oavi in the phone's settings.
+        }
+    }
+
     /** Hides the status and navigation bars for full-screen video; a swipe brings them back briefly. */
     fun setFullscreen(immersive: Boolean) {
+        updatePictureInPicture(immersive)
         val controller = window.insetsController ?: return
         if (immersive) {
             controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -109,11 +130,15 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** Dark icons on light backgrounds and the reverse, following Oavi's own theme. */
-    fun setLightSystemBars(light: Boolean) {
-        val mask = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or
-            WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
-        window.insetsController?.setSystemBarsAppearance(if (light) mask else 0, mask)
+    /**
+     * Dark icons on light backgrounds and the reverse. The status bar follows what is under it
+     * (often the top of the page), the navigation bar follows Oavi's own theme.
+     */
+    fun setLightSystemBars(statusLight: Boolean, navigationLight: Boolean) {
+        val status = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+        val navigation = WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+        val wanted = (if (statusLight) status else 0) or (if (navigationLight) navigation else 0)
+        window.insetsController?.setSystemBarsAppearance(wanted, status or navigation)
     }
 
     /** Keeps private pages out of screenshots, the recent-apps preview and screen capture. */
@@ -156,6 +181,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
+        when (intent?.action) {
+            ACTION_NEW_TAB -> return container.tabs.openNewTab(private = false)
+            ACTION_NEW_PRIVATE_TAB -> return container.tabs.openNewTab(private = true)
+        }
         val url = when (intent?.action) {
             Intent.ACTION_VIEW -> intent.dataString?.takeIf { it.startsWith("http://") || it.startsWith("https://") }
             Intent.ACTION_WEB_SEARCH -> intent.getStringExtra(SearchManager.QUERY)?.takeIf { it.isNotBlank() }?.let(::searchUrl)
@@ -172,5 +201,7 @@ class MainActivity : ComponentActivity() {
 
     private companion object {
         val LINK = Regex("https?://\\S+")
+        const val ACTION_NEW_TAB = "com.oavi.browser.action.NEW_TAB"
+        const val ACTION_NEW_PRIVATE_TAB = "com.oavi.browser.action.NEW_PRIVATE_TAB"
     }
 }

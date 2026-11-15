@@ -74,6 +74,88 @@
     }
   }
 
+  // The colour at the very top of the visible page, so the strip under the status bar can
+  // continue it instead of showing a seam. Forced-dark pages are inverted on screen, so their
+  // colour is inverted here too.
+  function topColor() {
+    let node = null;
+    try {
+      node = document.elementFromPoint(Math.floor(window.innerWidth / 2), 1);
+    } catch (e) {
+      node = null;
+    }
+    let rgb = null;
+    while (node && node.nodeType === 1 && !rgb) {
+      rgb = parseRgb(getComputedStyle(node).backgroundColor);
+      node = node.parentElement;
+    }
+    if (!rgb && document.body) {
+      rgb = parseRgb(getComputedStyle(document.body).backgroundColor);
+    }
+    if (!rgb && document.documentElement) {
+      rgb = parseRgb(getComputedStyle(document.documentElement).backgroundColor);
+    }
+    if (!rgb) {
+      const scheme = document.documentElement ? getComputedStyle(document.documentElement).colorScheme || "" : "";
+      const dark = /dark/.test(scheme) && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      rgb = dark ? [28, 27, 34] : [255, 255, 255];
+    }
+    if (document.documentElement && document.documentElement.hasAttribute("data-oavi-dark")) {
+      rgb = rgb.map(value => 255 - value);
+    }
+    return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+  }
+
+  let lastTop = null;
+  let topTimer = 0;
+
+  function reportTop() {
+    topTimer = 0;
+    const color = topColor();
+    if (color !== lastTop) {
+      lastTop = color;
+      send({ type: "top", color });
+    }
+  }
+
+  // The site's icon: a bitmap close to 180px if the page offers one (Android cannot draw
+  // SVG icons as bitmaps), otherwise the traditional /favicon.ico.
+  function iconUrl() {
+    let best = null;
+    let bestScore = -1;
+    const links = document.querySelectorAll(
+      'link[rel~="icon"], link[rel~="apple-touch-icon"], link[rel~="apple-touch-icon-precomposed"]'
+    );
+    for (const link of links) {
+      const href = link.href;
+      if (!href || /^data:/i.test(href)) {
+        continue;
+      }
+      if ((link.getAttribute("type") || "").includes("svg") || /\.svg($|[?#])/i.test(href)) {
+        continue;
+      }
+      const rel = (link.getAttribute("rel") || "").toLowerCase();
+      const sizes = (link.getAttribute("sizes") || "")
+        .split(/\s+/)
+        .map(value => parseInt(value, 10))
+        .filter(value => value > 0);
+      const size = sizes.length ? Math.max(...sizes) : rel.includes("apple-touch") ? 180 : 32;
+      const score = size >= 64 ? 1000 - Math.abs(size - 180) : size;
+      if (score > bestScore) {
+        bestScore = score;
+        best = href;
+      }
+    }
+    if (best) {
+      return best;
+    }
+    try {
+      return new URL("/favicon.ico", window.location.href).href;
+    } catch (e) {
+      return null;
+    }
+  }
+
   function themeColor() {
     for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
       const media = meta.getAttribute("media");
@@ -93,7 +175,16 @@
         readerable = false;
       }
     }
-    send({ type: "page", themeColor: themeColor(), readerable, reader: readerOn });
+    lastTop = topColor();
+    send({
+      type: "page",
+      themeColor: themeColor(),
+      readerable,
+      reader: readerOn,
+      topColor: lastTop,
+      icon: readerOn ? null : iconUrl(),
+      lang: document.documentElement ? document.documentElement.lang || "" : "",
+    });
   }
 
   function applyReaderStyle() {
@@ -176,7 +267,8 @@
     body.appendChild(main);
     applyReaderStyle();
     window.scrollTo(0, 0);
-    send({ type: "page", themeColor: null, readerable: false, reader: true });
+    lastTop = topColor();
+    send({ type: "page", themeColor: null, readerable: false, reader: true, topColor: lastTop });
   }
 
   function onMessage(message) {
@@ -186,6 +278,7 @@
     if (message.type === "config") {
       forceDark = !!message.forceDark;
       applyDark();
+      reportTop();
     } else if (message.type === "reader") {
       readerTheme = message.theme || "auto";
       readerScale = Number(message.fontScale) || 1;
@@ -193,6 +286,7 @@
         enterReader();
       } else if (message.on && readerOn) {
         applyReaderStyle();
+        reportTop();
       } else if (!message.on && readerOn) {
         window.location.reload();
       }
@@ -223,4 +317,13 @@
     ready();
   }
   window.addEventListener("load", ready, { once: true });
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (!topTimer) {
+        topTimer = setTimeout(reportTop, 200);
+      }
+    },
+    { passive: true }
+  );
 })();

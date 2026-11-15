@@ -2,6 +2,8 @@
 <resources>
     <color name="oavi_canvas">#FFF6F3EE</color>
     <color name="oavi_brand">#FF0E9F94</color>
+    <color name="oavi_shortcut">#FF0E9F94</color>
+    <color name="oavi_shortcut_private">#FF5B3FB5</color>
 
     <style name="Theme.Oavi" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/oavi_canvas</item>

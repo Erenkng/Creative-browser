@@ -15,6 +15,8 @@
     <string name="cd_share">Paylaş</string>
     <string name="cd_delete">Sil</string>
     <string name="cd_close_tab">Sekmeyi kapat</string>
+    <string name="cd_voice_search">Sesle ara</string>
+    <string name="voice_prompt">Bir arama ya da adres söyle</string>
     <string name="search_copy_link">Bağlantıyı kopyala</string>
     <string name="search_share">Paylaş</string>
     <string name="search_switch_to_tab">Bu sekmeye geç</string>
@@ -28,6 +30,12 @@
     <string name="menu_find">Sayfada bul</string>
     <string name="menu_more">Daha fazla</string>
     <string name="menu_less">Daha az</string>
+    <string name="menu_translate">Sayfayı çevir</string>
+    <string name="menu_show_original">Orijinalini göster</string>
+    <string name="translate_offer">%1$sye çevrilsin mi?</string>
+    <string name="translate_action">Çevir</string>
+    <string name="translating">Çevriliyor…</string>
+    <string name="snack_translate_failed">Bu sayfa çevrilemedi</string>
     <string name="menu_library">Yer imleri ve geçmiş</string>
     <string name="menu_downloads">İndirilenler</string>
     <string name="menu_desktop_site">Masaüstü sitesi</string>
@@ -91,6 +99,10 @@
     <string name="snack_no_app">Bu telefonda o bağlantıyı açabilecek bir uygulama yok</string>
     <string name="snack_history_cleared">Geçmiş temizlendi</string>
     <string name="snack_site_data_cleared">Çerezler ve site verileri temizlendi</string>
+    <string name="shortcut_new_tab">Yeni sekme</string>
+    <string name="shortcut_new_tab_long">Yeni sekme aç</string>
+    <string name="shortcut_private_tab">Gizli sekme</string>
+    <string name="shortcut_private_tab_long">Gizli sekme aç</string>
     <string name="tabs_normal">Sekmeler</string>
     <string name="tabs_private">Gizli</string>
     <string name="tabs_all">Tümü</string>
@@ -177,6 +189,11 @@
     <string name="settings_theme_system">Telefona uy</string>
     <string name="settings_theme_light">Açık</string>
     <string name="settings_theme_dark">Koyu</string>
+    <string name="settings_text_size">Sayfalarda yazı boyutu</string>
+    <string name="settings_text_size_body">Telefonun yazı boyutunu izle ya da kendin seç.</string>
+    <string name="settings_text_size_phone">Telefondaki gibi</string>
+    <string name="settings_zoom_everywhere">Her sitede yakınlaştır</string>
+    <string name="settings_zoom_everywhere_body">Bir site kapatmış olsa bile iki parmakla yakınlaştırabilirsin.</string>
     <string name="settings_dark_pages">Karanlık sayfalar</string>
     <string name="settings_dark_pages_body">Kendi karanlık teması olmayan siteleri karartır.</string>
     <string name="settings_collapse_island">Okurken adayı küçült</string>

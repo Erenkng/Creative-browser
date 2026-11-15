@@ -36,7 +36,7 @@ import com.oavi.browser.data.LibraryStore
 import com.oavi.browser.model.Bookmark
 import com.oavi.browser.model.HistoryEntry
 import com.oavi.browser.model.UrlInput
-import com.oavi.browser.ui.LetterTile
+import com.oavi.browser.ui.SiteIcon
 import com.oavi.browser.ui.Oavi
 import com.oavi.browser.ui.OaviChip
 import com.oavi.browser.ui.OaviIconButton
@@ -169,7 +169,7 @@ fun LibraryScreen(
                             .padding(start = 24.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        LetterTile(UrlInput.displayHost(item.url).ifEmpty { item.title })
+                        SiteIcon(UrlInput.displayHost(item.url), label = UrlInput.displayHost(item.url).ifEmpty { item.title })
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) {
                             Text(

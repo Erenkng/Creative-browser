@@ -44,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -367,15 +368,25 @@ fun OaviScreen(
                 )
                 content()
             }
-            OaviButton(
-                text = closeLabel,
-                onClick = onClose,
-                kind = ButtonKind.PRIMARY,
+            // The way out rests on a band that fades the list beneath it, so the button never
+            // sits on top of text that is still readable.
+            Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to colors.background.copy(alpha = 0f),
+                            0.45f to colors.background.copy(alpha = 0.94f),
+                            1f to colors.background,
+                        ),
+                    )
                     .navigationBarsPadding()
-                    .padding(bottom = 14.dp),
-            )
+                    .padding(top = 30.dp, bottom = 14.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                OaviButton(text = closeLabel, onClick = onClose, kind = ButtonKind.PRIMARY)
+            }
         }
     }
 }
