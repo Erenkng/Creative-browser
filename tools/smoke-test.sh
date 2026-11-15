@@ -258,6 +258,78 @@ screen_texts
 expect "reach this device"
 shot 10-local-network-refused
 
+# A walk through the screens the other steps do not reach, taking a screenshot of each,
+# so the whole interface can be reviewed from one run.
+step "tour: new tab page"
+tap "Menu" && sleep 2
+tap "New tab" && sleep 3
+screen_texts
+shot 16-home-rich
+
+step "tour: article"
+tap "Search or enter address" && sleep 2
+adb shell input text "localhost:8000/article.html"
+adb shell input keyevent KEYCODE_ENTER
+sleep 8
+screen_texts | head -n 12
+shot 17-article
+
+step "tour: reading view"
+tap "Reading view" && sleep 4
+screen_texts | head -n 8
+expect "How coffee reached Istanbul"
+shot 18-reader
+tap "Reading view" && sleep 2
+expect "Back to the full page"
+shot 19-reader-controls
+adb shell input keyevent KEYCODE_BACK
+sleep 2
+
+step "tour: find in page"
+tap "Menu" && sleep 2
+tap "Find in page" && sleep 2
+adb shell input text "coffee"
+sleep 3
+screen_texts | tail -n 6
+shot 20-find
+adb shell input keyevent KEYCODE_BACK
+sleep 1
+adb shell input keyevent KEYCODE_BACK
+sleep 2
+
+step "tour: bookmark, menu and library"
+tap "Menu" && sleep 2
+tap "Bookmark" && sleep 1
+shot 21-bookmarked
+tap "More" && sleep 2
+shot 22-menu-more
+tap "Bookmarks and history" && sleep 3
+screen_texts | head -n 12
+shot 23-library-history
+tap "Bookmarks" && sleep 2
+shot 24-library-bookmarks
+adb shell input keyevent KEYCODE_BACK
+sleep 2
+
+step "tour: tabs and groups"
+{ tap "tab open" || tap "tabs open"; } && sleep 3
+screen_texts | head -n 14
+shot 25-tabs
+read -r CARD_X1 CARD_Y1 CARD_X2 _ <<< "$(bounds_of "Example Domain")"
+if [ -n "$CARD_X1" ]; then
+  adb shell input swipe $(( (CARD_X1 + CARD_X2) / 2 )) $(( CARD_Y1 - 150 )) $(( (CARD_X1 + CARD_X2) / 2 )) $(( CARD_Y1 - 150 )) 900
+  sleep 2
+fi
+screen_texts | head -n 12
+shot 26-tab-actions
+tap "New group" && sleep 2
+shot 27-new-group
+tap "Create group" && sleep 3
+screen_texts | head -n 12
+shot 28-tabs-grouped
+adb shell input keyevent KEYCODE_BACK
+sleep 2
+
 step "page bottom stays clear of the island"
 tap "Menu" && sleep 2
 tap "New tab" && sleep 3
@@ -302,11 +374,18 @@ screen_texts
 expect "Karanlık sayfalar"
 expect "Yeni sekme"
 shot 14-menu-dark-turkish
+tap "Ayarlar" > /dev/null || { tap "Daha fazla" && sleep 1 && tap "Ayarlar"; }
+sleep 3
+shot 29-settings-dark-turkish
+adb shell input keyevent KEYCODE_BACK
+sleep 2
+{ tap "sekme açık"; } && sleep 3
+shot 30-tabs-dark-turkish
 adb shell input keyevent KEYCODE_BACK
 sleep 2
 
 step "switching tabs with the island"
-# Two swipes to the right go back two tabs, to example.com, which was opened earlier.
+# Two swipes to the right go back two tabs, to the 10.0.2.2 page opened earlier.
 read -r _ ISLAND_BUTTON_TOP _ ISLAND_BUTTON_BOTTOM <<< "$(bounds_of "Menü")"
 ISLAND_Y=$(( (${ISLAND_BUTTON_TOP:-2150} + ${ISLAND_BUTTON_BOTTOM:-2250}) / 2 ))
 adb shell input swipe 250 "$ISLAND_Y" 850 "$ISLAND_Y" 250
@@ -314,9 +393,9 @@ sleep 3
 adb shell input swipe 250 "$ISLAND_Y" 850 "$ISLAND_Y" 250
 sleep 6
 screen_texts
-expect "example.com"
+expect "10.0.2.2"
 shot 15-swiped-back
-# example.com follows the dark theme, so the test looks for drawn content, not a light page.
+# Pages may follow the dark theme, so the test looks for drawn content, not a light page.
 within "page shows after switching back to it" "$(page_detail shots/15-swiped-back.png)" 8 255
 
 step "private tab"
