@@ -9,8 +9,12 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.oavi.browser.model.Accent
+import com.oavi.browser.model.ArchiveAfter
+import com.oavi.browser.model.LayoutStyle
 import com.oavi.browser.model.ReaderTheme
 import com.oavi.browser.model.SearchEngine
+import com.oavi.browser.model.SecureDns
 import com.oavi.browser.model.Settings
 import com.oavi.browser.model.ThemeMode
 import com.oavi.browser.model.TrackingProtection
@@ -53,6 +57,15 @@ class SettingsStore(context: Context) {
             prefs[Keys.zoomEverywhere] = next.zoomEverywhere
             prefs[Keys.readerFontScale] = next.readerFontScale
             prefs[Keys.readerTheme] = next.readerTheme.name
+            prefs[Keys.layout] = next.layout.name
+            prefs[Keys.leftHanded] = next.leftHanded
+            prefs[Keys.accent] = next.accent.name
+            prefs[Keys.secureDns] = next.secureDns.name
+            prefs[Keys.dataSaver] = next.dataSaver
+            prefs[Keys.rejectCookieBanners] = next.rejectCookieBanners
+            prefs[Keys.cleanLinks] = next.cleanLinks
+            prefs[Keys.darkPagesAtNight] = next.darkPagesAtNight
+            prefs[Keys.archiveAfter] = next.archiveAfter.name
         }
     }
 
@@ -85,6 +98,15 @@ class SettingsStore(context: Context) {
             zoomEverywhere = prefs[Keys.zoomEverywhere] ?: defaults.zoomEverywhere,
             readerFontScale = prefs[Keys.readerFontScale] ?: defaults.readerFontScale,
             readerTheme = enumOr(prefs[Keys.readerTheme], defaults.readerTheme),
+            layout = enumOr(prefs[Keys.layout], defaults.layout),
+            leftHanded = prefs[Keys.leftHanded] ?: defaults.leftHanded,
+            accent = enumOr(prefs[Keys.accent], defaults.accent),
+            secureDns = enumOr(prefs[Keys.secureDns], defaults.secureDns),
+            dataSaver = prefs[Keys.dataSaver] ?: defaults.dataSaver,
+            rejectCookieBanners = prefs[Keys.rejectCookieBanners] ?: defaults.rejectCookieBanners,
+            cleanLinks = prefs[Keys.cleanLinks] ?: defaults.cleanLinks,
+            darkPagesAtNight = prefs[Keys.darkPagesAtNight] ?: defaults.darkPagesAtNight,
+            archiveAfter = enumOr(prefs[Keys.archiveAfter], defaults.archiveAfter),
         )
     }
 
@@ -109,6 +131,15 @@ class SettingsStore(context: Context) {
         val zoomEverywhere = booleanPreferencesKey("zoom_everywhere")
         val readerFontScale = floatPreferencesKey("reader_font_scale")
         val readerTheme = stringPreferencesKey("reader_theme")
+        val layout = stringPreferencesKey("layout")
+        val leftHanded = booleanPreferencesKey("left_handed")
+        val accent = stringPreferencesKey("accent")
+        val secureDns = stringPreferencesKey("secure_dns")
+        val dataSaver = booleanPreferencesKey("data_saver")
+        val rejectCookieBanners = booleanPreferencesKey("reject_cookie_banners")
+        val cleanLinks = booleanPreferencesKey("clean_links")
+        val darkPagesAtNight = booleanPreferencesKey("dark_pages_at_night")
+        val archiveAfter = stringPreferencesKey("archive_after")
         val blockedTotal = longPreferencesKey("blocked_total")
         val blockedWeek = longPreferencesKey("blocked_week")
         val blockedWeekIndex = longPreferencesKey("blocked_week_index")

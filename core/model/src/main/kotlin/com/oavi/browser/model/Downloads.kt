@@ -20,6 +20,14 @@ object DownloadNames {
         "text/csv" to "csv",
     )
 
+    /** A file name for a page saved as PDF: its title, else its site, else "page". */
+    fun pdfName(title: String, url: String): String {
+        val base = sanitize(title.replace('/', '-').replace('\\', '-').trim()).take(80).trim().trimEnd('.')
+            .ifEmpty { sanitize(UrlInput.displayHost(url)) }
+            .ifEmpty { "page" }
+        return "$base.pdf"
+    }
+
     /** A safe file name for a download, from the server's hint, else the address, else "download". */
     fun guess(url: String, contentDisposition: String?, mimeType: String?): String {
         val fromHeader = contentDisposition?.let(::fromContentDisposition)

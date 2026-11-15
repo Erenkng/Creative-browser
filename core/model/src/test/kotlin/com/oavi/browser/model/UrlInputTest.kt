@@ -85,6 +85,11 @@ class UrlInputTest {
         assertEquals("example.co.uk", UrlInput.baseDomain("news.example.co.uk"))
         assertEquals("example.com", UrlInput.baseDomain("a.b.example.com"))
         assertEquals("hurriyet.com.tr", UrlInput.baseDomain("www.hurriyet.com.tr"))
+        assertEquals("10.0.2.2", UrlInput.baseDomain("10.0.2.2"))
+        assertEquals("github", UrlInput.siteName("www.github.com"))
+        assertEquals("10.0.2.2", UrlInput.siteName("10.0.2.2"))
+        assertEquals("::1", UrlInput.siteName("[::1]"))
+        assertFalse(UrlInput.isIpAddress("1.example.com"))
         assertTrue(UrlInput.isSecure("HTTPS://example.com"))
         assertFalse(UrlInput.isSecure("http://example.com"))
     }

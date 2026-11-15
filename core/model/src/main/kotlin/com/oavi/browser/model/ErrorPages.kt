@@ -54,8 +54,11 @@ object ErrorPages {
         """.trimIndent()
     }
 
+    /** Every error page's address starts with this. */
+    const val URI_PREFIX = "data:text/html;charset=utf-8;base64,"
+
     fun dataUri(html: String): String =
-        "data:text/html;charset=utf-8;base64," + Base64.getEncoder().encodeToString(html.toByteArray(Charsets.UTF_8))
+        URI_PREFIX + Base64.getEncoder().encodeToString(html.toByteArray(Charsets.UTF_8))
 
     private fun escape(text: String): String = buildString(text.length) {
         for (c in text) {

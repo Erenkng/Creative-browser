@@ -1,10 +1,14 @@
 package com.oavi.browser.feature.browser
 
+import android.content.ClipDescription
+import android.content.ClipboardManager
 import android.content.Intent
 import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -42,6 +46,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.oavi.browser.data.LibraryStore
+import com.oavi.browser.model.SearchShortcuts
 import com.oavi.browser.model.Suggestion
 import com.oavi.browser.model.Suggestions
 import com.oavi.browser.model.Tab
@@ -53,9 +58,10 @@ import com.oavi.browser.ui.R
 import kotlinx.coroutines.delay
 
 /**
- * The island as an address field. The current address arrives selected, so typing replaces
- * it and one tap edits it. Suggestions come only from this device (open tabs, bookmarks,
- * history) and the best match sits nearest the field, closest to the thumb.
+ * The address field. The current address arrives selected, so typing replaces it and one tap
+ * edits it. Suggestions come only from this device (open tabs, bookmarks, history) and the
+ * best match sits nearest the field: above it when the field is at the bottom, below it
+ * when the field is at the top ([fieldOnTop]).
  */
 @Composable
 internal fun SearchPanel(
@@ -66,8 +72,10 @@ internal fun SearchPanel(
     onSelectTab: (String) -> Unit,
     onCopy: (String) -> Unit,
     onShare: (String) -> Unit,
+    fieldOnTop: Boolean = false,
 ) {
     val colors = Oavi.colors
+    val context = LocalContext.current
     val focus = remember { FocusRequester() }
     var field by remember {
         mutableStateOf(TextFieldValue(initialText, selection = TextRange(0, initialText.length)))
@@ -75,8 +83,32 @@ internal fun SearchPanel(
     val query = field.text.trim()
     val untouched = query == initialText && initialText.isNotEmpty()
 
+    // Only the clipboard's description is read here (no "pasted" notice); its text is read
+    // when the chip is tapped.
+    val clipboard = remember { context.getSystemService(ClipboardManager::class.java) }
+    val canPaste = remember {
+        try {
+            val description = clipboard?.primaryClipDescription
+            description != null && (
+                description.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) ||
+                    description.hasMimeType(ClipDescription.MIMETYPE_TEXT_URILIST) ||
+                    description.hasMimeType(ClipDescription.MIMETYPE_TEXT_HTML)
+                )
+        } catch (_: SecurityException) {
+            false
+        }
+    }
+    val pasteAndGo: () -> Unit = {
+        val text = try {
+            clipboard?.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(context)?.toString()?.trim()
+        } catch (_: SecurityException) {
+            null
+        }
+        if (!text.isNullOrEmpty()) onSubmit(text)
+    }
+
     val suggestions by produceState(emptyList<Suggestion>(), query, untouched) {
-        if (query.isEmpty() || untouched) {
+        if (query.isEmpty() || untouched || query.startsWith("!")) {
             value = emptyList()
         } else {
             delay(70)
@@ -89,29 +121,17 @@ internal fun SearchPanel(
             )
         }
     }
+    val shortcut = SearchShortcuts.typing(field.text)
+    val shortcutHelp = if (shortcut == null && query.startsWith("!") && !query.contains(' ')) {
+        val typed = query.removePrefix("!").lowercase()
+        SearchShortcuts.all.filter { s -> s.keys.any { it.startsWith(typed) } }.take(6)
+    } else {
+        emptyList()
+    }
 
     LaunchedEffect(Unit) { focus.requestFocus() }
 
-    Column(Modifier.fillMaxWidth()) {
-        if (suggestions.isNotEmpty()) {
-            Spacer(Modifier.height(8.dp))
-            for (suggestion in suggestions.asReversed()) {
-                SuggestionRow(suggestion) {
-                    val tabId = suggestion.tabId
-                    if (suggestion.kind == Suggestion.Kind.OPEN_TAB && tabId != null) onSelectTab(tabId) else onSubmit(suggestion.url)
-                }
-            }
-        }
-        if (untouched) {
-            Row(
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OaviChip(stringResource(R.string.search_copy_link), selected = false, onClick = { onCopy(initialText) })
-                Spacer(Modifier.width(8.dp))
-                OaviChip(stringResource(R.string.search_share), selected = false, onClick = { onShare(initialText) })
-            }
-        }
+    val fieldRow: @Composable () -> Unit = {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -159,6 +179,96 @@ internal fun SearchPanel(
                 )
             } else {
                 VoiceSearchButton(onResult = onSubmit)
+            }
+        }
+    }
+
+    val chips: @Composable () -> Unit = {
+        val showPaste = canPaste && (query.isEmpty() || untouched)
+        if (untouched || showPaste) {
+            Row(
+                modifier = Modifier
+                    .padding(start = 16.dp, end = 16.dp, top = if (fieldOnTop) 0.dp else 14.dp, bottom = if (fieldOnTop) 12.dp else 0.dp)
+                    .horizontalScroll(rememberScrollState()),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (showPaste) {
+                    OaviChip(stringResource(R.string.search_paste_go), selected = false, onClick = pasteAndGo)
+                    Spacer(Modifier.width(8.dp))
+                }
+                if (untouched) {
+                    OaviChip(stringResource(R.string.search_copy_link), selected = false, onClick = { onCopy(initialText) })
+                    Spacer(Modifier.width(8.dp))
+                    OaviChip(stringResource(R.string.search_share), selected = false, onClick = { onShare(initialText) })
+                }
+            }
+        }
+    }
+
+    val shortcutRows: @Composable () -> Unit = {
+        if (shortcut != null) {
+            HintRow(
+                icon = R.drawable.ic_search,
+                title = stringResource(R.string.search_shortcut_hint, shortcut.name),
+                detail = SearchShortcuts.match(field.text)?.query,
+                onClick = { if (SearchShortcuts.match(field.text) != null) onSubmit(field.text.trim()) },
+            )
+        }
+        for (option in shortcutHelp) {
+            HintRow(
+                icon = R.drawable.ic_search,
+                title = "!" + option.keys.first() + "  ·  " + option.name,
+                detail = null,
+                onClick = {
+                    val text = "!" + option.keys.first() + " "
+                    field = TextFieldValue(text, selection = TextRange(text.length))
+                },
+            )
+        }
+    }
+
+    val suggestionRows: @Composable (bestFirst: Boolean) -> Unit = { bestFirst ->
+        for (suggestion in if (bestFirst) suggestions else suggestions.asReversed()) {
+            SuggestionRow(suggestion) {
+                val tabId = suggestion.tabId
+                if (suggestion.kind == Suggestion.Kind.OPEN_TAB && tabId != null) onSelectTab(tabId) else onSubmit(suggestion.url)
+            }
+        }
+    }
+
+    Column(Modifier.fillMaxWidth()) {
+        if (fieldOnTop) {
+            fieldRow()
+            chips()
+            shortcutRows()
+            suggestionRows(true)
+            if (suggestions.isNotEmpty() || shortcutHelp.isNotEmpty()) Spacer(Modifier.height(8.dp))
+        } else {
+            if (suggestions.isNotEmpty() || shortcutHelp.isNotEmpty()) Spacer(Modifier.height(8.dp))
+            suggestionRows(false)
+            shortcutRows()
+            chips()
+            fieldRow()
+        }
+    }
+}
+
+@Composable
+private fun HintRow(icon: Int, title: String, detail: String?, onClick: () -> Unit) {
+    val colors = Oavi.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(painterResource(icon), contentDescription = null, tint = colors.accent, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, style = Oavi.type.body, color = colors.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (!detail.isNullOrBlank()) {
+                Text(detail, style = Oavi.type.caption, color = colors.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }

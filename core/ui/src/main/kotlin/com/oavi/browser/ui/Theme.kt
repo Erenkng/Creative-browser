@@ -19,6 +19,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import com.oavi.browser.model.Accent
 
 /** Oavi's colours. Three palettes share one shape: light, dark and private. */
 @Immutable
@@ -129,6 +130,7 @@ fun OaviTheme(
     dark: Boolean,
     private: Boolean = false,
     siteAccent: Color? = null,
+    accent: Accent = Accent.TEAL,
     content: @Composable () -> Unit,
 ) {
     val base = when {
@@ -136,7 +138,8 @@ fun OaviTheme(
         dark -> DarkPalette
         else -> LightPalette
     }
-    val target = if (siteAccent != null && !private) readableAccent(siteAccent, base.isDark) else base.accent
+    val chosen = if (private) base.accent else accentColor(accent, base.isDark)
+    val target = if (siteAccent != null && !private) readableAccent(siteAccent, base.isDark) else chosen
     val accent by animateColorAsState(target, tween(450), label = "accent")
     val background by animateColorAsState(base.background, tween(300), label = "background")
     val surface by animateColorAsState(base.surface, tween(300), label = "surface")
@@ -182,6 +185,15 @@ fun OaviTheme(
     CompositionLocalProvider(LocalOaviColors provides colors, LocalOaviType provides DefaultType) {
         MaterialTheme(colorScheme = material, content = content)
     }
+}
+
+/** The accent colours people can choose, each tuned for light and dark surfaces. */
+fun accentColor(accent: Accent, dark: Boolean): Color = when (accent) {
+    Accent.TEAL -> if (dark) Color(0xFF4FD8CB) else Color(0xFF0B8E84)
+    Accent.BLUE -> if (dark) Color(0xFF82B4FF) else Color(0xFF1F67D2)
+    Accent.VIOLET -> if (dark) Color(0xFFB9A2FF) else Color(0xFF6A4BD6)
+    Accent.ROSE -> if (dark) Color(0xFFFF8FB4) else Color(0xFFC2386A)
+    Accent.AMBER -> if (dark) Color(0xFFFFBE5C) else Color(0xFFA35F00)
 }
 
 /**

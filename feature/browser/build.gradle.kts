@@ -28,4 +28,5 @@ android {
 dependencies {
     implementation(project(":core:ui"))
     implementation(project(":core:engine"))
+    implementation(libs.zxing.core)
 }

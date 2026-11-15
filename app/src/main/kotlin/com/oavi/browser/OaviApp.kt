@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -31,6 +32,11 @@ import com.oavi.browser.device.DeviceInfo
 import com.oavi.browser.engine.BrowserEvent
 import com.oavi.browser.feature.browser.BrowserNavigation
 import com.oavi.browser.feature.browser.BrowserScreen
+import com.oavi.browser.feature.browser.PageToolActions
+import com.oavi.browser.feature.browser.QrSheet
+import com.oavi.browser.feature.browser.ReadAloudBar
+import com.oavi.browser.feature.browser.messageLift
+import com.oavi.browser.feature.browser.pageUnderStatusBar
 import com.oavi.browser.feature.onboarding.OnboardingScreen
 import com.oavi.browser.feature.privacy.PrivateLockCover
 import com.oavi.browser.feature.privacy.ProtectionSheet
@@ -40,6 +46,9 @@ import com.oavi.browser.feature.settings.DeviceSummary
 import com.oavi.browser.feature.settings.LibraryScreen
 import com.oavi.browser.feature.settings.SettingsScreen
 import com.oavi.browser.feature.tabs.TabsScreen
+import com.oavi.browser.model.Accent
+import com.oavi.browser.model.LayoutStyle
+import com.oavi.browser.model.LinkCleaner
 import com.oavi.browser.model.ThemeMode
 import com.oavi.browser.ui.Oavi
 import com.oavi.browser.ui.OaviSnackbarHost
@@ -85,17 +94,23 @@ fun OaviApp(container: AppContainer, activity: MainActivity) {
     }
 
     val siteIcons = remember { SiteIcons(container.icons.revision, container.icons::icon) }
+    val readAloud = remember { ReadAloud(context) }
+    DisposableEffect(readAloud) { onDispose { readAloud.shutdown() } }
+    val reading by readAloud.state.collectAsState()
+    var qrUrl by remember { mutableStateOf<String?>(null) }
+    val layout = settings?.layout ?: LayoutStyle.ISLAND
 
     CompositionLocalProvider(LocalSiteIcons provides siteIcons) {
         OaviTheme(
             dark = dark,
             private = onPrivateTab,
             siteAccent = selected?.themeColor?.let { Color(it) },
+            accent = settings?.accent ?: Accent.TEAL,
         ) {
             val colors = Oavi.colors
 
             // Over a page, the status bar sits on the page's own top colour.
-            val pageTop = selected?.topColor?.takeIf { overlay == Overlay.NONE && !selected.isBlank }
+            val pageTop = selected?.topColor?.takeIf { overlay == Overlay.NONE && !selected.isBlank && layout.pageUnderStatusBar }
             val statusLight = if (pageTop != null) Color(pageTop).luminance() > 0.5f else !colors.isDark
             LaunchedEffect(statusLight, colors.isDark) { activity.setLightSystemBars(statusLight, !colors.isDark) }
             LaunchedEffect(selected?.fullscreen) { activity.setFullscreen(selected?.fullscreen == true) }
@@ -105,6 +120,9 @@ fun OaviApp(container: AppContainer, activity: MainActivity) {
             }
             LaunchedEffect(settings?.performanceBoost) { activity.applyPerformance() }
 
+            LaunchedEffect(readAloud) {
+                readAloud.onUnavailable = { snackbar.show(resources.getString(R.string.read_aloud_unavailable)) }
+            }
             LaunchedEffect(controller) {
                 controller.events.collect { event ->
                     when (event) {
@@ -127,6 +145,15 @@ fun OaviApp(container: AppContainer, activity: MainActivity) {
                         BrowserEvent.NoAppForLink -> snackbar.show(resources.getString(R.string.snack_no_app))
                         BrowserEvent.TranslationFailed -> snackbar.show(resources.getString(R.string.snack_translate_failed))
                         is BrowserEvent.PageSettled -> Unit
+                        is BrowserEvent.ArticleText -> if (reading.status == ReadAloud.Status.PREPARING) {
+                            if (!readAloud.start(event.title, event.text, event.language)) {
+                                snackbar.show(resources.getString(R.string.read_aloud_nothing))
+                            }
+                        }
+                        is BrowserEvent.PagePdf -> {
+                            val pdf = event.pdf
+                            if (pdf == null) snackbar.show(resources.getString(R.string.print_failed)) else activity.printPdf(event.title, pdf)
+                        }
                     }
                 }
             }
@@ -162,6 +189,7 @@ fun OaviApp(container: AppContainer, activity: MainActivity) {
                             settings = settings,
                             library = container.library,
                             blockedThisWeek = stats.thisWeek,
+                            blockedTotal = stats.total,
                             snackbar = snackbar,
                             covered = overlay != Overlay.NONE,
                             navigation = BrowserNavigation(
@@ -171,6 +199,17 @@ fun OaviApp(container: AppContainer, activity: MainActivity) {
                                 onOpenProtection = { protectionOpen = true },
                                 onOpenReaderControls = { readerOpen = true },
                                 onOpenDownloads = activity::openDownloads,
+                                onPageTools = PageToolActions(
+                                    onSavePdf = controller::savePdf,
+                                    onPrint = controller::preparePrint,
+                                    onReadAloud = {
+                                        readAloud.preparing()
+                                        controller.requestArticleText()
+                                    },
+                                    onShowQr = {
+                                        qrUrl = selected?.url?.let { if (settings.cleanLinks) LinkCleaner.clean(it) else it }
+                                    },
+                                ),
                             ),
                             onUpdateSettings = container::updateSettings,
                             pageCover = { PrivateLockCover(visible = locked && onPrivateTab, onUnlock = unlock) },
@@ -237,13 +276,43 @@ fun OaviApp(container: AppContainer, activity: MainActivity) {
                             onDismiss = { readerOpen = false },
                         )
 
+                        val readingShown = reading.status != ReadAloud.Status.IDLE && overlay == Overlay.NONE
+                        ReadAloudBar(
+                            visible = readingShown && selected?.fullscreen != true,
+                            preparing = reading.status == ReadAloud.Status.PREPARING,
+                            paused = reading.status == ReadAloud.Status.PAUSED,
+                            title = reading.title,
+                            progress = reading.progress,
+                            onPauseOrResume = { if (reading.status == ReadAloud.Status.PAUSED) readAloud.resume() else readAloud.pause() },
+                            onStop = readAloud::stop,
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .navigationBarsPadding()
+                                .padding(bottom = layout.messageLift()),
+                        )
+                        QrSheet(
+                            url = qrUrl.takeIf { overlay == Overlay.NONE },
+                            onCopy = { url ->
+                                activity.copyText(url)
+                                snackbar.show(resources.getString(R.string.snack_link_copied))
+                            },
+                            onShare = { url -> activity.shareText(url, resources.getString(R.string.cd_share)) },
+                            onDismiss = { qrUrl = null },
+                        )
+
                         OaviSnackbarHost(
                             state = snackbar,
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
                                 .navigationBarsPadding()
                                 .imePadding()
-                                .padding(bottom = 88.dp),
+                                .padding(
+                                    bottom = if (overlay == Overlay.NONE) {
+                                        layout.messageLift() + if (readingShown) 64.dp else 0.dp
+                                    } else {
+                                        88.dp
+                                    },
+                                ),
                         )
                     }
                 }

@@ -11,6 +11,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -62,6 +65,10 @@ internal class MenuActions(
     val onDownloads: () -> Unit,
     val onToggleDesktop: () -> Unit,
     val onTranslate: () -> Unit,
+    val onSavePdf: () -> Unit,
+    val onPrint: () -> Unit,
+    val onReadAloud: () -> Unit,
+    val onShowQr: () -> Unit,
     val onSettings: () -> Unit,
     val onClose: () -> Unit,
 )
@@ -120,7 +127,25 @@ internal fun MenuPanel(
             enter = expandVertically(OaviMotion.spatial()) + fadeIn(OaviMotion.fade()),
             exit = shrinkVertically(OaviMotion.spatial()) + fadeOut(OaviMotion.fade()),
         ) {
-            Column(Modifier.padding(top = 10.dp)) {
+            Column(
+                Modifier
+                    .padding(top = 10.dp)
+                    .heightIn(max = 380.dp)
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                if (onPage) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                    ) {
+                        SmallTool(R.drawable.ic_speak, stringResource(R.string.menu_read_aloud), actions.onReadAloud)
+                        SmallTool(R.drawable.ic_save_page, stringResource(R.string.menu_save_pdf), actions.onSavePdf)
+                        SmallTool(R.drawable.ic_print, stringResource(R.string.menu_print), actions.onPrint)
+                        SmallTool(R.drawable.ic_qr, stringResource(R.string.menu_qr), actions.onShowQr)
+                    }
+                }
                 if (onPage) {
                     OaviRow(
                         title = stringResource(if (tab?.translatedTo != null) R.string.menu_show_original else R.string.menu_translate),
@@ -163,6 +188,31 @@ internal fun MenuPanel(
             )
             OaviIconButton(R.drawable.ic_close, stringResource(R.string.cd_close), actions.onClose)
         }
+    }
+}
+
+/** A page tool in the expanded menu: smaller than the everyday tiles, four to a row. */
+@Composable
+private fun RowScope.SmallTool(icon: Int, label: String, onClick: () -> Unit) {
+    val colors = Oavi.colors
+    Column(
+        modifier = Modifier
+            .weight(1f)
+            .clip(RoundedCornerShape(18.dp))
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(vertical = 8.dp, horizontal = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(painterResource(icon), contentDescription = null, tint = colors.accent, modifier = Modifier.size(24.dp))
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = label,
+            style = Oavi.type.caption,
+            color = colors.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 

@@ -92,8 +92,7 @@ object TabRules {
             .eachCount()
             .maxByOrNull { it.value }
             ?.key ?: return ""
-        val first = domain.substringBefore('.')
-        return first.replaceFirstChar { it.titlecase() }
+        return UrlInput.siteName(domain).replaceFirstChar { it.titlecase() }
     }
 
     fun visible(tabs: List<Tab>, private: Boolean): List<Tab> =

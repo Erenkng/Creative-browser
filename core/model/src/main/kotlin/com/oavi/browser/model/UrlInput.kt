@@ -26,9 +26,17 @@ object UrlInput {
         "http", "https", "about", "data", "blob", "file", "view-source", "resource", "moz-extension",
     )
 
-    fun resolve(raw: String, engine: SearchEngine): ResolvedInput {
+    /**
+     * @param language the user's language, for search shortcuts that have one site per
+     *   language (Wikipedia).
+     */
+    fun resolve(raw: String, engine: SearchEngine, language: String = "en"): ResolvedInput {
         val text = raw.trim()
         if (text.isEmpty()) return ResolvedInput.Navigate(BLANK)
+
+        SearchShortcuts.match(text)?.let { match ->
+            return ResolvedInput.Search(match.url(language), match.query)
+        }
 
         val scheme = schemeOf(text)
         if (scheme != null) {
@@ -97,12 +105,28 @@ object UrlInput {
      * grouping tabs; not a substitute for the public suffix list.
      */
     fun baseDomain(host: String): String {
+        // An address such as 192.168.1.1 or [::1] is its own "site".
+        if (isIpAddress(host)) return host.lowercase()
         val labels = host.lowercase().removePrefix("www.").split('.').filter { it.isNotEmpty() }
         if (labels.size <= 2) return labels.joinToString(".")
         val tld = labels.last()
         val second = labels[labels.size - 2]
         val compound = tld.length == 2 && second in setOf("com", "co", "net", "org", "gov", "edu", "ac")
         return labels.takeLast(if (compound) 3 else 2).joinToString(".")
+    }
+
+    /**
+     * A short name for a site, for labels under its icon: "github" for github.com, the whole
+     * address for 10.0.2.2.
+     */
+    fun siteName(host: String): String =
+        if (isIpAddress(host)) host.removeSurrounding("[", "]") else baseDomain(host).substringBefore('.')
+
+    fun isIpAddress(host: String): Boolean {
+        val bare = host.removeSurrounding("[", "]")
+        if (':' in bare) return true
+        val parts = bare.split('.')
+        return parts.size == 4 && parts.all { part -> part.isNotEmpty() && part.length <= 3 && part.all(Char::isDigit) }
     }
 
     fun isSecure(url: String): Boolean = url.trim().startsWith("https://", ignoreCase = true)

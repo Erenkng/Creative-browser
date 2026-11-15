@@ -1,6 +1,8 @@
 package com.oavi.browser.engine
 
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.graphics.Bitmap
 import android.view.MotionEvent
 import android.widget.FrameLayout
@@ -21,6 +23,18 @@ class EngineView(context: Context) : FrameLayout(context) {
 
     /** A finger landed on the page. */
     var onTouchStart: (() -> Unit)? = null
+
+    /** "Search" was chosen on selected text. */
+    var onSearchSelection: ((String) -> Unit)? = null
+
+    /** The label of that action, in the app's language. */
+    var searchSelectionLabel: String = "Search"
+
+    private val selectionToolbar: SelectionToolbar? by lazy {
+        activityOf(context)?.let { activity ->
+            SelectionToolbar(activity, { searchSelectionLabel }) { text -> onSearchSelection?.invoke(text) }
+        }
+    }
 
     init {
         addView(geckoView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
@@ -67,9 +81,13 @@ class EngineView(context: Context) : FrameLayout(context) {
     fun show(controller: TabsController, tabId: String?) {
         val session = controller.geckoFor(tabId)
         if (shown === session) return
-        if (shown != null) geckoView.releaseSession()
+        if (shown != null) {
+            shown?.selectionActionDelegate = null
+            geckoView.releaseSession()
+        }
         shown = session
         if (session != null) {
+            session.selectionActionDelegate = selectionToolbar
             val color = coverColor
             if (color != null && controller.needsCover(tabId)) geckoView.coverUntilFirstPaint(color)
             geckoView.setSession(session)
@@ -78,8 +96,20 @@ class EngineView(context: Context) : FrameLayout(context) {
 
     /** Detaches from the engine. Call when the view is going away for good. */
     fun release() {
-        if (shown != null) geckoView.releaseSession()
+        if (shown != null) {
+            shown?.selectionActionDelegate = null
+            geckoView.releaseSession()
+        }
         shown = null
+    }
+
+    private fun activityOf(context: Context): Activity? {
+        var current: Context? = context
+        while (current is ContextWrapper) {
+            if (current is Activity) return current
+            current = current.baseContext
+        }
+        return null
     }
 
     /** Takes a picture of the visible page. [onResult] receives null when nothing could be captured. */

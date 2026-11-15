@@ -32,6 +32,8 @@ data class TabState(
     val fullscreen: Boolean = false,
     val desktopMode: Boolean = false,
     val crashed: Boolean = false,
+    /** Oavi's own "can't reach this page" message is showing instead of the page. */
+    val errorPage: Boolean = false,
     val protectionOff: Boolean = false,
     val find: FindState? = null,
     val thumbnailVersion: Int = 0,
@@ -71,6 +73,12 @@ sealed interface BrowserEvent {
     data object TranslationFailed : BrowserEvent
     /** The page finished loading; a good moment to refresh its preview image. */
     data class PageSettled(val tabId: String) : BrowserEvent
+
+    /** The text of a page, asked for to be read aloud. Empty when the page had nothing to read. */
+    data class ArticleText(val tabId: String, val title: String, val text: String, val language: String?) : BrowserEvent
+
+    /** A page saved as PDF, or null when it could not be. Used to print it. */
+    data class PagePdf(val title: String, val pdf: ByteArray?) : BrowserEvent
 }
 
 enum class ConfirmKind {

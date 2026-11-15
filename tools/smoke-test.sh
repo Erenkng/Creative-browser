@@ -114,6 +114,16 @@ expect() {
   fi
 }
 
+# Swipes up until an element whose text or description contains $1 is on screen.
+scroll_to() {
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    if screen_xml | grep -qF "$1"; then return 0; fi
+    adb shell input swipe 540 1700 540 800 400
+    sleep 1
+  done
+  screen_xml | grep -qF "$1"
+}
+
 alive() {
   if adb shell pidof "$PKG" >/dev/null 2>&1; then
     echo "  ok: app is running"
@@ -234,10 +244,16 @@ tap "Menu" && sleep 2
 tap "More" && sleep 2
 tap "Settings" && sleep 3
 screen_texts
-expect "Tracking protection"
+expect "Layout"
+expect "Classic"
 shot 8-settings
-adb shell input swipe 540 1900 540 500 300
-sleep 2
+scroll_to "Tracking protection"
+expect "Tracking protection"
+shot 32-settings-privacy
+scroll_to "Data saver"
+expect "Data saver"
+shot 33-settings-data
+scroll_to "profile"
 expect "profile"
 adb shell input keyevent KEYCODE_BACK
 sleep 2
@@ -300,8 +316,13 @@ sleep 2
 step "tour: bookmark, menu and library"
 tap "Menu" && sleep 2
 tap "Bookmark" && sleep 1
+# The menu closes, and "Bookmarked" shows above the island instead of over the menu.
+screen_texts | head -n 8
+expect "Bookmarked"
 shot 21-bookmarked
+tap "Menu" && sleep 2
 tap "More" && sleep 2
+expect "Read aloud"
 shot 22-menu-more
 tap "Bookmarks and history" && sleep 3
 screen_texts | head -n 12
@@ -421,6 +442,68 @@ shot 15-swiped-back
 # Pages may follow the dark theme, so the test looks for drawn content, not a light page.
 within "page shows after switching back to it" "$(page_detail shots/15-swiped-back.png)" 8 255
 
+# Every layout, in Turkish on a light screen: the article, the address entry with
+# suggestions, the menu and a new tab. Each is chosen the way a person would, in settings.
+step "layouts"
+adb shell cmd uimode night no
+sleep 4
+open_settings() {
+  tap "Menü" && sleep 2
+  tap "Ayarlar" > /dev/null || { tap "Daha fazla" && sleep 1 && tap "Ayarlar"; }
+  sleep 3
+}
+LAYOUT_SHOT=40
+for LAYOUT in "Klasik" "Sekme şeridi" "Alt çubuk" "Odak" "Ada"; do
+  echo "  -- $LAYOUT"
+  open_settings
+  tap "$LAYOUT" && sleep 2
+  if [ "$LAYOUT" = "Klasik" ]; then shot 39-settings-layouts; fi
+  adb shell input keyevent KEYCODE_BACK
+  sleep 2
+  adb shell am start -a android.intent.action.VIEW -d "http://localhost:8000/article.html" "$PKG" > /dev/null
+  sleep 7
+  clear_system_dialogs
+  screen_texts | head -n 12
+  expect "Menü"
+  shot "$LAYOUT_SHOT-layout-page"
+  tap "localhost" && sleep 2
+  adb shell input text "co"
+  sleep 2
+  shot "$((LAYOUT_SHOT + 1))-layout-search"
+  adb shell input keyevent KEYCODE_BACK
+  sleep 1
+  adb shell input keyevent KEYCODE_BACK
+  sleep 2
+  tap "Menü" && sleep 2
+  shot "$((LAYOUT_SHOT + 2))-layout-menu"
+  if [ "$LAYOUT" = "Odak" ]; then
+    adb shell input keyevent KEYCODE_BACK
+    sleep 2
+    tap "Sekme paneli" && sleep 2
+    expect "Sekmeler"
+    shot "$((LAYOUT_SHOT + 4))-layout-sidebar"
+    adb shell input keyevent KEYCODE_BACK
+    sleep 2
+    tap "Menü" && sleep 2
+  fi
+  tap "Yeni sekme" && sleep 3
+  shot "$((LAYOUT_SHOT + 3))-layout-home"
+  LAYOUT_SHOT=$((LAYOUT_SHOT + 5))
+done
+# Left-handed: the island's buttons move under the left thumb.
+open_settings
+tap "Solak kullanım" && sleep 2
+adb shell input keyevent KEYCODE_BACK
+sleep 2
+adb shell am start -a android.intent.action.VIEW -d "http://localhost:8000/article.html" "$PKG" > /dev/null
+sleep 6
+shot 65-left-handed
+open_settings
+tap "Solak kullanım" && sleep 2
+adb shell input keyevent KEYCODE_BACK
+sleep 2
+alive
+
 step "private tab"
 tap "Menü" && sleep 2
 tap "Gizli sekme" && sleep 3
@@ -463,7 +546,7 @@ for path in sorted(glob.glob("shots/*.png"), key=lambda p: int(os.path.basename(
     if chosen is not None and os.path.basename(path).split("-")[0] not in chosen:
         continue
     image = Image.open(path).convert("RGB")
-    width = 270
+    width = int(os.environ.get("SMOKE_SHOT_WIDTH", "360"))
     image = image.resize((width, round(image.height * width / image.width)), Image.LANCZOS)
     data = io.BytesIO()
     image.save(data, "AVIF", quality=45, speed=4)

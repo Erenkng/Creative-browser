@@ -24,6 +24,8 @@ import com.oavi.browser.model.ProfileKind
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import com.oavi.browser.model.SearchEngine
+import com.oavi.browser.model.SecureDns
+import com.oavi.browser.model.ArchiveAfter
 import com.oavi.browser.model.Settings
 import com.oavi.browser.model.ThemeMode
 import com.oavi.browser.model.TrackingProtection
@@ -85,6 +87,27 @@ fun SettingsScreen(
                 }
             }
 
+            SectionTitle(stringResource(R.string.settings_section_layout))
+            LayoutPicker(
+                current = settings.layout,
+                leftHanded = settings.leftHanded,
+                onPick = { style -> onUpdate { it.copy(layout = style) } },
+            )
+            OaviSwitchRow(
+                title = stringResource(R.string.settings_left_handed),
+                subtitle = stringResource(R.string.settings_left_handed_body),
+                icon = R.drawable.ic_mirror,
+                checked = settings.leftHanded,
+                onCheckedChange = { value -> onUpdate { it.copy(leftHanded = value) } },
+            )
+            OaviSwitchRow(
+                title = stringResource(R.string.settings_collapse_island),
+                subtitle = stringResource(R.string.settings_collapse_island_body),
+                icon = R.drawable.ic_chevron_down,
+                checked = settings.collapseIslandOnScroll,
+                onCheckedChange = { value -> onUpdate { it.copy(collapseIslandOnScroll = value) } },
+            )
+
             SectionTitle(stringResource(R.string.settings_section_privacy))
             OaviSwitchRow(
                 title = stringResource(R.string.settings_ad_block),
@@ -113,6 +136,40 @@ fun SettingsScreen(
                 onCheckedChange = { value -> onUpdate { it.copy(httpsOnly = value) } },
             )
             OaviSwitchRow(
+                title = stringResource(R.string.settings_cookie_banners),
+                subtitle = stringResource(R.string.settings_cookie_banners_body),
+                icon = R.drawable.ic_cookie,
+                checked = settings.rejectCookieBanners,
+                onCheckedChange = { value -> onUpdate { it.copy(rejectCookieBanners = value) } },
+            )
+            OaviSwitchRow(
+                title = stringResource(R.string.settings_clean_links),
+                subtitle = stringResource(R.string.settings_clean_links_body),
+                icon = R.drawable.ic_link,
+                checked = settings.cleanLinks,
+                onCheckedChange = { value -> onUpdate { it.copy(cleanLinks = value) } },
+            )
+            OaviRow(
+                title = stringResource(R.string.settings_secure_dns),
+                subtitle = stringResource(R.string.settings_secure_dns_body),
+                icon = R.drawable.ic_dns,
+            )
+            ChipRow {
+                for (option in SecureDns.entries) {
+                    OaviChip(
+                        text = when (option) {
+                            SecureDns.OFF -> stringResource(R.string.settings_secure_dns_off)
+                            SecureDns.CLOUDFLARE -> "Cloudflare"
+                            SecureDns.QUAD9 -> "Quad9"
+                            SecureDns.ADGUARD -> "AdGuard"
+                        },
+                        selected = settings.secureDns == option,
+                        onClick = { onUpdate { it.copy(secureDns = option) } },
+                    )
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            OaviSwitchRow(
                 title = stringResource(R.string.settings_lock_private),
                 subtitle = stringResource(R.string.settings_lock_private_body),
                 icon = R.drawable.ic_lock,
@@ -133,6 +190,13 @@ fun SettingsScreen(
                 ThemeChip(ThemeMode.LIGHT, R.string.settings_theme_light, settings, onUpdate)
                 ThemeChip(ThemeMode.DARK, R.string.settings_theme_dark, settings, onUpdate)
             }
+            Spacer(Modifier.height(6.dp))
+            OaviRow(
+                title = stringResource(R.string.settings_accent),
+                subtitle = stringResource(R.string.settings_accent_body),
+                icon = R.drawable.ic_palette,
+            )
+            AccentPicker(current = settings.accent, onPick = { accent -> onUpdate { it.copy(accent = accent) } })
             Spacer(Modifier.height(6.dp))
             OaviRow(
                 title = stringResource(R.string.settings_text_size),
@@ -169,12 +233,43 @@ fun SettingsScreen(
                 onCheckedChange = { value -> onUpdate { it.copy(forceDarkPages = value) } },
             )
             OaviSwitchRow(
-                title = stringResource(R.string.settings_collapse_island),
-                subtitle = stringResource(R.string.settings_collapse_island_body),
-                icon = R.drawable.ic_chevron_down,
-                checked = settings.collapseIslandOnScroll,
-                onCheckedChange = { value -> onUpdate { it.copy(collapseIslandOnScroll = value) } },
+                title = stringResource(R.string.settings_dark_at_night),
+                subtitle = stringResource(R.string.settings_dark_at_night_body),
+                icon = R.drawable.ic_moon,
+                checked = settings.darkPagesAtNight,
+                onCheckedChange = { value -> onUpdate { it.copy(darkPagesAtNight = value) } },
             )
+
+            SectionTitle(stringResource(R.string.settings_section_data))
+            OaviSwitchRow(
+                title = stringResource(R.string.settings_data_saver),
+                subtitle = stringResource(R.string.settings_data_saver_body),
+                icon = R.drawable.ic_image_off,
+                checked = settings.dataSaver,
+                onCheckedChange = { value -> onUpdate { it.copy(dataSaver = value) } },
+            )
+            OaviRow(
+                title = stringResource(R.string.settings_archive),
+                subtitle = stringResource(R.string.settings_archive_body),
+                icon = R.drawable.ic_archive,
+            )
+            ChipRow {
+                for (option in ArchiveAfter.entries) {
+                    OaviChip(
+                        text = stringResource(
+                            when (option) {
+                                ArchiveAfter.DAY -> R.string.settings_archive_day
+                                ArchiveAfter.WEEK -> R.string.settings_archive_week
+                                ArchiveAfter.TWO_WEEKS -> R.string.settings_archive_two_weeks
+                                ArchiveAfter.NEVER -> R.string.settings_archive_never
+                            },
+                        ),
+                        selected = settings.archiveAfter == option,
+                        onClick = { onUpdate { it.copy(archiveAfter = option) } },
+                    )
+                }
+            }
+            Spacer(Modifier.height(6.dp))
 
             SectionTitle(stringResource(R.string.settings_section_performance))
             OaviRow(

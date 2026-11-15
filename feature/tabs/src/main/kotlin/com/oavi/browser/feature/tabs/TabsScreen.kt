@@ -58,18 +58,9 @@ import com.oavi.browser.ui.OaviIconButton
 import com.oavi.browser.ui.OaviMotion
 import com.oavi.browser.ui.R
 import com.oavi.browser.ui.glass
+import com.oavi.browser.ui.toColor
 import com.oavi.browser.ui.rememberBackProgress
 import com.oavi.browser.ui.rememberHaptics
-
-internal fun GroupColor.toColor(): Color = when (this) {
-    GroupColor.AQUA -> Color(0xFF12B5A6)
-    GroupColor.CORAL -> Color(0xFFE0653A)
-    GroupColor.VIOLET -> Color(0xFF8B6CFF)
-    GroupColor.AMBER -> Color(0xFFC08A12)
-    GroupColor.LEAF -> Color(0xFF4E9A3B)
-    GroupColor.ROSE -> Color(0xFFD6457A)
-    GroupColor.SLATE -> Color(0xFF5B6B8C)
-}
 
 private sealed interface TabFilter {
     data object All : TabFilter

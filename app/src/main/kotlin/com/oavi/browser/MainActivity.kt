@@ -7,10 +7,14 @@ import android.app.HandoffActivityParams
 import android.app.PictureInPictureParams
 import android.app.SearchManager
 import android.app.role.RoleManager
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
+import android.print.PrintAttributes
+import android.print.PrintManager
 import android.util.Rational
 import android.view.WindowInsets
 import android.view.WindowInsetsController
@@ -165,6 +169,30 @@ class MainActivity : ComponentActivity() {
     fun openDownloads() {
         try {
             startActivity(Intent(DownloadManager.ACTION_VIEW_DOWNLOADS))
+        } catch (_: Exception) {
+        }
+    }
+
+    /** Hands a page, already rendered as a PDF, to the phone's print service. */
+    fun printPdf(title: String, pdf: ByteArray) {
+        val printing = getSystemService(PrintManager::class.java) ?: return
+        val name = title.ifBlank { "Oavi" }
+        try {
+            printing.print(name, PdfPrintAdapter(name, pdf), PrintAttributes.Builder().build())
+        } catch (_: RuntimeException) {
+            // No print service is available; nothing to hand the page to.
+        }
+    }
+
+    fun copyText(text: String) {
+        val clipboard = getSystemService(ClipboardManager::class.java) ?: return
+        clipboard.setPrimaryClip(ClipData.newPlainText("link", text))
+    }
+
+    fun shareText(text: String, chooserTitle: String) {
+        val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
+        try {
+            startActivity(Intent.createChooser(send, chooserTitle))
         } catch (_: Exception) {
         }
     }

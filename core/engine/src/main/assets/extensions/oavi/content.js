@@ -3,7 +3,9 @@
 // Runs in every top-level page. Talks to the app over a native port to:
 //  - report the site's theme colour and whether the page reads as an article,
 //  - switch the page into reader view and back,
-//  - darken pages that do not offer a dark theme of their own.
+//  - darken pages that do not offer a dark theme of their own,
+//  - answer cookie consent pop-ups with "reject" when the user wants that,
+//  - hand over the article's text to be read aloud.
 // Styling lives in page.css and is switched with attributes on <html>, so it is not
 // affected by the page's content security policy.
 
@@ -14,6 +16,8 @@
 
   let port = null;
   let forceDark = false;
+  let rejectCookies = false;
+  let cookieWatch = null;
   let readerOn = false;
   let readerTheme = "auto";
   let readerScale = 1;
@@ -271,14 +275,152 @@
     send({ type: "page", themeColor: null, readerable: false, reader: true, topColor: lastTop });
   }
 
+  // ---- cookie consent pop-ups
+
+  // The "reject" buttons of the consent tools most sites use.
+  const REJECT_SELECTORS = [
+    "#onetrust-reject-all-handler",
+    ".ot-pc-refuse-all-handler",
+    "#CybotCookiebotDialogBodyButtonDecline",
+    "#CybotCookiebotDialogBodyLevelButtonLevelOptinDeclineAll",
+    "#didomi-notice-disagree-button",
+    ".didomi-continue-without-agreeing",
+    "button.sp_choice_type_REJECT_ALL",
+    ".qc-cmp2-summary-buttons button[mode='secondary']",
+    "#truste-consent-required",
+    ".cmplz-btn.cmplz-deny",
+    ".cky-btn-reject",
+    ".osano-cm-denyAll",
+    ".iubenda-cs-reject-btn",
+    "[data-testid='uc-deny-all-button']",
+    ".fc-cta-do-not-consent",
+    ".cc-deny",
+    "#cookiescript_reject",
+    ".js-cookie-consent-reject",
+  ];
+
+  // What a reject button says, in the languages Oavi speaks and a few common others.
+  const REJECT_WORDS = [
+    "reject all", "reject", "decline all", "decline", "deny all", "deny", "refuse all",
+    "only necessary", "necessary only", "only essential", "essential only",
+    "use necessary cookies only", "continue without accepting", "do not consent",
+    "tümünü reddet", "hepsini reddet", "reddet", "kabul etme", "sadece gerekli",
+    "yalnızca gerekli", "yalnızca zorunlu", "sadece zorunlu", "zorunlu çerezler",
+    "gerekli çerezler", "kabul etmeden devam et",
+    "alle ablehnen", "ablehnen", "nur notwendige", "tout refuser", "refuser",
+    "continuer sans accepter", "rechazar todo", "rechazar", "rifiuta tutto", "rifiuta",
+  ];
+
+  const CONSENT_HINT = /cookie|consent|gdpr|kvkk|privacy|cmp|çerez|cerez|banner|notice/i;
+
+  function visible(element) {
+    const box = element.getBoundingClientRect ? element.getBoundingClientRect() : null;
+    if (box && box.width === 0 && box.height === 0 && element.offsetParent === null) {
+      return false;
+    }
+    const style = window.getComputedStyle ? window.getComputedStyle(element) : null;
+    return !style || (style.visibility !== "hidden" && style.display !== "none");
+  }
+
+  function insideConsent(element) {
+    for (let node = element; node && node !== document.body; node = node.parentElement) {
+      const label = [node.id, node.className && node.className.baseVal === undefined ? node.className : "",
+        node.getAttribute && node.getAttribute("aria-label"), node.getAttribute && node.getAttribute("role")]
+        .filter(Boolean).join(" ");
+      if (CONSENT_HINT.test(label)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Clicks a reject button if one is showing. Returns true when it did. */
+  function rejectCookieBanner() {
+    for (const selector of REJECT_SELECTORS) {
+      let button = null;
+      try {
+        button = document.querySelector(selector);
+      } catch (e) {
+        button = null;
+      }
+      if (button && visible(button)) {
+        button.click();
+        return true;
+      }
+    }
+    const candidates = document.querySelectorAll("button, [role='button'], a, input[type='button'], input[type='submit']");
+    for (const element of candidates) {
+      const text = (element.value || element.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
+      if (!text || text.length > 48 || !REJECT_WORDS.includes(text)) {
+        continue;
+      }
+      if (insideConsent(element) && visible(element)) {
+        element.click();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Watches the page for a consent pop-up for a while after it loads, since most appear late. */
+  function watchCookieBanners() {
+    if (!rejectCookies || cookieWatch || !document.body) {
+      return;
+    }
+    if (rejectCookieBanner()) {
+      return;
+    }
+    let tries = 0;
+    cookieWatch = new MutationObserver(() => {
+      if (tries++ > 400 || rejectCookieBanner()) {
+        cookieWatch.disconnect();
+      }
+    });
+    cookieWatch.observe(document.body, { childList: true, subtree: true });
+    setTimeout(() => {
+      if (cookieWatch) {
+        cookieWatch.disconnect();
+      }
+    }, 12000);
+  }
+
+  // ---- reading aloud
+
+  /** The article's own text when the page reads as one, otherwise the page's visible text. */
+  function articleText() {
+    let title = document.title || "";
+    let text = "";
+    try {
+      const article = new Readability(document.cloneNode(true)).parse();
+      if (article && article.textContent && article.textContent.trim().length > 200) {
+        title = article.title || title;
+        text = article.textContent;
+      }
+    } catch (e) {
+      text = "";
+    }
+    if (!text && document.body) {
+      text = document.body.innerText || document.body.textContent || "";
+    }
+    text = text.replace(/[ \t\u00a0]+/g, " ").replace(/\n\s*\n+/g, "\n\n").trim();
+    const lang = (document.documentElement.getAttribute("lang") || "").trim();
+    return { type: "article", title: title.trim(), text: text.slice(0, 200000), lang };
+  }
+
   function onMessage(message) {
     if (!message) {
       return;
     }
     if (message.type === "config") {
       forceDark = !!message.forceDark;
+      rejectCookies = !!message.rejectCookies;
       applyDark();
       reportTop();
+      if (document.readyState !== "loading") {
+        watchCookieBanners();
+      }
+    } else if (message.type === "article") {
+      send(articleText());
     } else if (message.type === "reader") {
       readerTheme = message.theme || "auto";
       readerScale = Number(message.fontScale) || 1;
@@ -308,6 +450,7 @@
   function ready() {
     applyDark();
     report();
+    watchCookieBanners();
   }
 
   connect();

@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.oavi.browser.model.DayPart
 import com.oavi.browser.model.HistoryEntry
+import com.oavi.browser.model.LayoutStyle
 import com.oavi.browser.model.Tab
 import com.oavi.browser.model.UrlInput
 import com.oavi.browser.ui.ButtonKind
@@ -69,8 +70,9 @@ internal fun topSiteShortcuts(entries: List<HistoryEntry>, limit: Int = 8): List
 }
 
 /**
- * What a new tab shows. Everything hangs from the bottom of the screen, just above the
- * island, so the things worth tapping are already within reach.
+ * What a new tab shows. In the bottom layouts everything hangs from the bottom of the screen,
+ * just above the bars, so the things worth tapping are already within reach; in the top
+ * layouts it reads from the top, under the address bar, with a large search field.
  */
 @Composable
 internal fun HomePage(
@@ -78,35 +80,178 @@ internal fun HomePage(
     resume: List<Tab>,
     topSites: List<HistoryEntry>,
     blockedThisWeek: Long,
+    blockedTotal: Long,
+    layout: LayoutStyle,
     onOpenUrl: (String) -> Unit,
     onSelectTab: (String) -> Unit,
+    onSearch: () -> Unit,
     modifier: Modifier = Modifier,
     showSwipeTip: Boolean = false,
     onDismissSwipeTip: () -> Unit = {},
 ) {
     val colors = Oavi.colors
+    val fromTop = layout == LayoutStyle.CLASSIC || layout == LayoutStyle.STRIP || layout == LayoutStyle.FOCUS
+    val inCard = layout == LayoutStyle.FOCUS
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
             .background(colors.background)
-            .statusBarsPadding()
-            .navigationBarsPadding(),
+            .then(if (inCard) Modifier else Modifier.statusBarsPadding().navigationBarsPadding()),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState(), reverseScrolling = true)
+                .verticalScroll(rememberScrollState(), reverseScrolling = !fromTop)
                 // At least as tall as the screen, so short content still rests at the bottom.
                 .heightIn(min = maxHeight)
-                .padding(start = 24.dp, end = 24.dp, top = 32.dp, bottom = 104.dp),
-            verticalArrangement = Arrangement.Bottom,
+                .padding(
+                    start = 24.dp,
+                    end = 24.dp,
+                    top = if (fromTop) layout.topSpace() + 28.dp else 32.dp,
+                    bottom = layout.homeBottomSpace(),
+                ),
+            verticalArrangement = if (fromTop) Arrangement.Top else Arrangement.Bottom,
         ) {
-            if (private) {
-                PrivateIntro()
-            } else {
-                HomeContent(resume, topSites, blockedThisWeek, onOpenUrl, onSelectTab, showSwipeTip, onDismissSwipeTip)
+            when {
+                private -> PrivateIntro()
+                fromTop -> HomeFromTop(layout, resume, topSites, onOpenUrl, onSelectTab, onSearch)
+                else -> HomeContent(
+                    resume, topSites, blockedThisWeek, blockedTotal, layout == LayoutStyle.DOCK,
+                    onOpenUrl, onSelectTab, showSwipeTip, onDismissSwipeTip,
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun Greeting() {
+    val hour = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
+    Text(
+        text = stringResource(
+            when (DayPart.of(hour)) {
+                DayPart.MORNING -> R.string.home_morning
+                DayPart.AFTERNOON -> R.string.home_afternoon
+                DayPart.EVENING -> R.string.home_evening
+                DayPart.NIGHT -> R.string.home_night
+            },
+        ),
+        style = Oavi.type.display,
+        color = Oavi.colors.onSurface,
+    )
+}
+
+/** The new-tab page of the top layouts: greeting, a large search field, shortcuts, then unfinished reading. */
+@Composable
+private fun HomeFromTop(
+    layout: LayoutStyle,
+    resume: List<Tab>,
+    topSites: List<HistoryEntry>,
+    onOpenUrl: (String) -> Unit,
+    onSelectTab: (String) -> Unit,
+    onSearch: () -> Unit,
+) {
+    val colors = Oavi.colors
+    Column {
+        Greeting()
+        if (layout != LayoutStyle.STRIP) {
+            Spacer(Modifier.height(22.dp))
+            SearchBox(onSearch)
+        }
+        if (topSites.isNotEmpty()) {
+            Spacer(Modifier.height(26.dp))
+            ShortcutGrid(topSites, onOpenUrl)
+        }
+        if (resume.isNotEmpty()) {
+            Spacer(Modifier.height(14.dp))
+            Text(stringResource(R.string.home_resume_title), style = Oavi.type.caption, color = colors.muted)
+            Spacer(Modifier.height(10.dp))
+            for (tab in resume) {
+                ResumeCard(tab) { onSelectTab(tab.id) }
+                Spacer(Modifier.height(8.dp))
+            }
+        }
+    }
+}
+
+/** A large search field that opens the address entry, for layouts where the address is out of reach. */
+@Composable
+private fun SearchBox(onClick: () -> Unit) {
+    val colors = Oavi.colors
+    val source = remember { MutableInteractionSource() }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(54.dp)
+            .pressScale(source, pressed = 0.98f)
+            .clip(RoundedCornerShape(27.dp))
+            .background(colors.surface)
+            .clickable(interactionSource = source, indication = LocalIndication.current, role = Role.Button, onClick = onClick)
+            .padding(horizontal = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(painterResource(R.drawable.ic_search), contentDescription = null, tint = colors.accent, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(12.dp))
+        Text(
+            stringResource(R.string.island_placeholder),
+            style = Oavi.type.headline,
+            color = colors.muted,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun ShortcutGrid(topSites: List<HistoryEntry>, onOpenUrl: (String) -> Unit) {
+    for (row in topSites.chunked(4)) {
+        Row(Modifier.fillMaxWidth()) {
+            for (site in row) {
+                SiteShortcut(site, Modifier.weight(1f)) { onOpenUrl(site.url) }
+            }
+            repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
+        }
+        Spacer(Modifier.height(14.dp))
+    }
+}
+
+/** What protection achieved, front and centre: this week and since Oavi was installed. */
+@Composable
+private fun ProtectionStats(thisWeek: Long, total: Long) {
+    val colors = Oavi.colors
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(colors.surface)
+            .padding(horizontal = 18.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(colors.accentSoft),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(painterResource(R.drawable.ic_shield), contentDescription = null, tint = colors.accent, modifier = Modifier.size(24.dp))
+        }
+        Spacer(Modifier.width(16.dp))
+        StatColumn(thisWeek, stringResource(R.string.home_stats_week), Modifier.weight(1f))
+        StatColumn(total, stringResource(R.string.home_stats_total), Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun StatColumn(value: Long, label: String, modifier: Modifier) {
+    Column(modifier) {
+        Text(
+            text = java.text.NumberFormat.getIntegerInstance().format(value),
+            style = Oavi.type.title,
+            color = Oavi.colors.accent,
+            maxLines = 1,
+        )
+        Text(label, style = Oavi.type.caption, color = Oavi.colors.muted, maxLines = 2)
     }
 }
 
@@ -115,6 +260,8 @@ private fun HomeContent(
     resume: List<Tab>,
     topSites: List<HistoryEntry>,
     blockedThisWeek: Long,
+    blockedTotal: Long,
+    showStats: Boolean,
     onOpenUrl: (String) -> Unit,
     onSelectTab: (String) -> Unit,
     showSwipeTip: Boolean,
@@ -122,21 +269,11 @@ private fun HomeContent(
 ) {
     val colors = Oavi.colors
     Column {
-
-        val hour = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
-        Text(
-            text = stringResource(
-                when (DayPart.of(hour)) {
-                    DayPart.MORNING -> R.string.home_morning
-                    DayPart.AFTERNOON -> R.string.home_afternoon
-                    DayPart.EVENING -> R.string.home_evening
-                    DayPart.NIGHT -> R.string.home_night
-                },
-            ),
-            style = Oavi.type.display,
-            color = colors.onSurface,
-        )
-        if (blockedThisWeek > 0) {
+        Greeting()
+        if (showStats) {
+            Spacer(Modifier.height(16.dp))
+            ProtectionStats(blockedThisWeek, blockedTotal)
+        } else if (blockedThisWeek > 0) {
             Spacer(Modifier.height(10.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(painterResource(R.drawable.ic_shield), contentDescription = null, tint = colors.accent, modifier = Modifier.size(18.dp))
@@ -164,15 +301,7 @@ private fun HomeContent(
             Spacer(Modifier.height(22.dp))
             Text(stringResource(R.string.home_top_sites), style = Oavi.type.caption, color = colors.muted)
             Spacer(Modifier.height(12.dp))
-            for (row in topSites.chunked(4)) {
-                Row(Modifier.fillMaxWidth()) {
-                    for (site in row) {
-                        SiteShortcut(site, Modifier.weight(1f)) { onOpenUrl(site.url) }
-                    }
-                    repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
-                }
-                Spacer(Modifier.height(14.dp))
-            }
+            ShortcutGrid(topSites, onOpenUrl)
         }
 
         // Closest to the island, because it is about the island.
@@ -202,7 +331,7 @@ private fun SwipeTip(onDismiss: () -> Unit) {
             .padding(start = 16.dp, top = 14.dp, bottom = 14.dp, end = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(painterResource(R.drawable.ic_tab), contentDescription = null, tint = colors.accent, modifier = Modifier.size(22.dp))
+        Icon(painterResource(R.drawable.ic_swipe), contentDescription = null, tint = colors.accent, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(stringResource(R.string.home_tip_title), style = Oavi.type.label, color = colors.onSurface)
@@ -258,7 +387,7 @@ private fun SiteShortcut(site: HistoryEntry, modifier: Modifier, onClick: () -> 
         SiteIcon(host, size = 52.dp)
         Spacer(Modifier.height(6.dp))
         Text(
-            text = UrlInput.baseDomain(host).substringBefore('.'),
+            text = UrlInput.siteName(host),
             style = Oavi.type.caption,
             color = Oavi.colors.onSurface,
             maxLines = 1,

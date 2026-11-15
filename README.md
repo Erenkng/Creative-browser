@@ -21,9 +21,23 @@ Her push'ta GitHub Actions uygulamayı derler.
 `debug/app-debug.apk` aynı uygulamanın hata ayıklama sürümüdür: daha büyük ve daha yavaştır,
 yalnızca sorun incelemek için kullanılır. Hız için her zaman **release** sürümünü kur.
 
+## Düzenler
+
+Ayarlar → Düzen'den beş düzenden biri seçilir; her kart düzenin küçük bir çizimini gösterir.
+Hepsi aynı hareketleri tanır (çubukta yana kaydır: sekme değiştir) ve **Solak kullanım**
+açıkken en çok kullanılan düğmeler sol başparmağın altına geçer.
+
+| Düzen | Neye benzer | Oavi'nin farkı |
+|---|---|---|
+| **Ada** (varsayılan) | Oavi'nin kendi düzeni | Altta yüzen tek kapsül; okurken küçük bir hapa döner |
+| **Klasik** | Chrome gibi adres çubuğu üstte | Koruma kalkanı adresin içinde, okuma görünümü ve yenile tek dokunuşta; çubuğu yana kaydırarak sekme değiştirme, aşağı çekerek tüm sekmeler; yeni sekmede büyük arama kutusu |
+| **Sekme şeridi** | Vivaldi gibi üstte açık sekmelerin şeridi, altta araç çubuğu | Seçili sekme vurgu rengiyle işaretlenir; ortadaki arama düğmesi başparmağın ilk değdiği yerde; araç çubuğu okurken saklanır |
+| **Alt çubuk** | Brave gibi adres ve düğmeler altta | Kalkan bu sayfada engellenenleri rozetle sayar; yeni sekmede bu hafta ve toplam engellenenler; okurken ince bir şeride iner |
+| **Odak** | Zen gibi sayfa yumuşak bir zemin üzerinde yuvarlak bir kart | Altta küçük bir tutamak; adres ekranın ortasında yüzen bir komut çubuğunda açılır; sekmeler gruplarıyla soldan açılan dikey panelde, en çok gezilen siteler en üstte |
+
 ## Arayüz: Ada
 
-Oavi'de üst çubuk yoktur. Tek kontrol, ekranın altında başparmağın durduğu yerde yüzen
+Ada düzeninde üst çubuk yoktur. Tek kontrol, ekranın altında başparmağın durduğu yerde yüzen
 **ada**dır. Ada başka çubuklarla yer değiştirmez; kendisi şekil değiştirir.
 
 | Hareket | Sonuç |
@@ -75,6 +89,31 @@ Renk ve saydamlık dışında süreli animasyon yoktur.
   Uygulama kapanıp açıldığında sekmeler ve sayfa geçmişleri geri gelir.
 - **Diğer:** Geçmiş, yer imleri, indirme, dosya yükleme, sayfada bul, masaüstü sitesi,
   paylaşım, site izinleri (konum, kamera, mikrofon), varsayılan tarayıcı olma.
+
+### 0.2.0 ile gelenler
+
+- **Beş düzen ve solak kullanım** (yukarıda).
+- **Vurgu rengi:** Turkuaz, mavi, mor, gül, kehribar.
+- **Sayfa çevirisi** cihazın üzerinde (motorun çeviri modelleriyle); başka dildeki sayfada
+  adanın üstünde sakin bir öneri çıkar.
+- **Site simgeleri** yeni sekmede, geçmişte, yer imlerinde ve sekme kartlarında.
+- **Sesle arama**, **panodan yapıştır ve git**, **arama kısayolları**: `!w istanbul`
+  Wikipedia'da, `!yt` YouTube'da, `!harita` haritada, `!tr` çeviride arar (sona da yazılabilir:
+  `istanbul !w`); "!" yazınca kısayollar listelenir.
+- **Seçili metinde** Kopyala / Paylaş / Ara araç çubuğu (ve diğer uygulamaların metin eylemleri).
+- **Sesli okuma:** Sayfa ya da makale telefonun kendi sesiyle okunur; duraklat, devam et.
+- **PDF olarak kaydet**, **yazdır**, **QR kodu** (sayfayı başka cihazda açmak için).
+- **Çerez uyarılarını reddet:** Yaygın onay araçlarında ve Türkçe/İngilizce/Almanca/Fransızca
+  "Reddet" düğmelerinde otomatik reddeder; çerezle ilgisi olmayan düğmelere dokunmaz.
+- **Bağlantıları temizle:** `utm_*`, `fbclid`, `gclid` gibi izleme ekleri açılan adreslerden
+  ve kopyalanan/paylaşılan bağlantılardan silinir.
+- **Güvenli DNS:** Cloudflare, Quad9 ya da AdGuard üzerinden DNS over HTTPS (ulaşılamazsa
+  ağın kendi DNS'ine düşer).
+- **Veri tasarrufu:** Sayfalar görselsiz yüklenir.
+- **Gece karanlık sayfalar:** 20:00–07:00 arası sayfalar kendiliğinden koyulaşır.
+- **Arşiv süresi:** Kullanılmayan sekmeler 1 gün, 1 hafta, 2 hafta sonra ya da hiç.
+- **Yazı boyutu** (telefonu izle ya da %90–150), **her sitede yakınlaştırma**, **ana ekran
+  kısayolları** (yeni sekme / gizli sekme), tam ekran videoda **resim içinde resim**.
 
 ### Android 17'ye özgü olanlar
 

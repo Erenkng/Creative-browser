@@ -70,10 +70,12 @@ internal class PageTools(private val runtime: GeckoRuntime) {
         waiting.removeAll { it.first === session }
     }
 
-    fun setBlockerConfig(adBlock: Boolean, allowHosts: Collection<String>) {
+    fun setBlockerConfig(adBlock: Boolean, dataSaver: Boolean, cleanLinks: Boolean, allowHosts: Collection<String>) {
         val config = JSONObject()
             .put("type", "config")
             .put("adBlock", adBlock)
+            .put("dataSaver", dataSaver)
+            .put("cleanLinks", cleanLinks)
             .put("allowHosts", JSONArray(allowHosts))
         blockerConfig = config
         backgroundPort?.postMessage(config)

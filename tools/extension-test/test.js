@@ -44,6 +44,34 @@ const check = (name, ok, detail) => { console.log((ok ? "  ok   " : "  FAIL ") +
   check("does not report zero", posted.length === 1);
 }
 
+// ---------- background.js: data saver and clean links ----------
+{
+  let listener = null, portListener = null;
+  const browser = {
+    webRequest: { onBeforeRequest: { addListener: fn => { listener = fn; } } },
+    runtime: { connectNative: () => ({
+      onMessage: { addListener: fn => { portListener = fn; } },
+      onDisconnect: { addListener: () => {} },
+      postMessage: () => {},
+    }) },
+  };
+  const ctx = { browser, URL, setTimeout: () => {}, setInterval: () => {}, console, decodeURIComponent };
+  vm.createContext(ctx);
+  vm.runInContext(read("hosts.js") + "\n" + read("background.js"), ctx);
+  const req = (url, type, method = "GET") => listener({ url, type, method, documentUrl: "https://news.example/", thirdParty: false });
+  console.log("background.js (data saver, clean links)");
+  const cleaned = req("https://shop.example/item?id=7&utm_source=mail&fbclid=abc#top", "main_frame");
+  check("removes tracking parameters from pages being opened", cleaned.redirectUrl === "https://shop.example/item?id=7#top", JSON.stringify(cleaned));
+  check("leaves clean addresses alone", !req("https://shop.example/item?id=7", "main_frame").redirectUrl);
+  check("survives malformed escapes", !req("https://shop.example/?q=%E0%A4%A", "main_frame").redirectUrl);
+  check("never rewrites a form being sent", !req("https://shop.example/?utm_source=x", "main_frame", "POST").redirectUrl);
+  check("loads images normally", !req("https://news.example/a.jpg", "image").cancel);
+  portListener({ type: "config", adBlock: true, dataSaver: true, cleanLinks: false, allowHosts: [] });
+  check("data saver leaves images out", req("https://news.example/a.jpg", "image").cancel === true);
+  check("data saver keeps scripts", !req("https://news.example/a.js", "script").cancel);
+  check("clean links can be switched off", !req("https://shop.example/?utm_source=x", "main_frame").redirectUrl);
+}
+
 // ---------- content.js: theme colour, dark pages, reader ----------
 function page(html, { dark = false } = {}) {
   const dom = new JSDOM(html, { url: "https://news.example/story", runScripts: "outside-only", pretendToBeVisual: true });
@@ -141,6 +169,58 @@ console.log("content.js");
   const p = page(`<!doctype html><html><head></head><body><p>too short</p></body></html>`);
   p.send({ type: "reader", on: true, theme: "auto", fontScale: 1 });
   check("refuses reader view when nothing can be extracted", !p.w.document.documentElement.hasAttribute("data-oavi-reader") || p.last().reader === true);
+}
+// ---------- content.js: cookie pop-ups and reading aloud ----------
+console.log("content.js (cookie pop-ups, reading aloud)");
+// jsdom does no layout; give elements a size so they count as shown, as in a browser.
+const laidOut = p => {
+  p.w.HTMLElement.prototype.getBoundingClientRect = () => ({ width: 120, height: 40, top: 0, left: 0, right: 120, bottom: 40 });
+  return p;
+};
+{
+  const p = page(`<!doctype html><html><head></head><body><p>story</p>
+    <div id="onetrust-banner-sdk"><button id="onetrust-accept-btn-handler">Accept</button>
+    <button id="onetrust-reject-all-handler">Reject All</button></div></body></html>`);
+  laidOut(p);
+  let rejected = 0, accepted = 0;
+  p.w.document.getElementById("onetrust-reject-all-handler").addEventListener("click", () => rejected++);
+  p.w.document.getElementById("onetrust-accept-btn-handler").addEventListener("click", () => accepted++);
+  p.send({ type: "config", forceDark: false, rejectCookies: true });
+  check("rejects a known consent tool's pop-up", rejected === 1 && accepted === 0, `rejected=${rejected} accepted=${accepted}`);
+}
+{
+  const p = page(`<!doctype html><html><head></head><body><p>haber</p>
+    <div class="kvkk-cerez-uyarisi"><p>Çerezleri kullanıyoruz.</p>
+    <a href="#" id="ok">Kabul et</a> <button id="no">Tümünü reddet</button></div></body></html>`);
+  laidOut(p);
+  let clicked = "";
+  p.w.document.getElementById("no").addEventListener("click", () => { clicked += "no"; });
+  p.w.document.getElementById("ok").addEventListener("click", () => { clicked += "ok"; });
+  p.send({ type: "config", forceDark: false, rejectCookies: true });
+  check("finds a reject button by its words in Turkish", clicked === "no", clicked);
+}
+{
+  const p = page(`<!doctype html><html><head></head><body><div class="friend-requests">
+    <button id="no">Reject</button></div></body></html>`);
+  laidOut(p);
+  let clicked = 0;
+  p.w.document.getElementById("no").addEventListener("click", () => clicked++);
+  p.send({ type: "config", forceDark: false, rejectCookies: true });
+  check("does not press reject buttons that are not about cookies", clicked === 0);
+}
+{
+  const p = laidOut(page(`<!doctype html><html><head></head><body><div id="cookie-banner"><button id="no">Reject all</button></div></body></html>`));
+  let clicked = 0;
+  p.w.document.getElementById("no").addEventListener("click", () => clicked++);
+  p.send({ type: "config", forceDark: false, rejectCookies: false });
+  check("leaves pop-ups alone when switched off", clicked === 0);
+}
+{
+  const p = page(article);
+  p.send({ type: "article" });
+  const reply = p.sent.find(m => m.type === "article");
+  check("hands over the article text to read aloud", reply && reply.text.includes("single floating control") && !reply.text.includes("Sidebar junk"), reply && reply.text.slice(0, 120));
+  check("names the article", reply && reply.title === "A long story", reply && reply.title);
 }
 console.log(failed === 0 ? "\nALL EXTENSION TESTS PASSED" : `\n${failed} FAILED`);
 process.exit(failed ? 1 : 0);

@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.content.res.Configuration
 import android.util.Log
 import com.oavi.browser.model.PerformanceProfile
+import com.oavi.browser.model.SecureDns
 import com.oavi.browser.model.Settings
 import com.oavi.browser.model.ThemeMode
 import com.oavi.browser.model.TrackingProtection
@@ -68,6 +69,32 @@ class OaviEngine(
         runtime.settings.setAllowInsecureConnections(
             if (settings.httpsOnly || hardened) GeckoRuntimeSettings.HTTPS_ONLY else GeckoRuntimeSettings.ALLOW_ALL,
         )
+        applySecureDns(settings.secureDns)
+        blocking.setQueryParameterStrippingEnabled(settings.cleanLinks)
+        blocking.setQueryParameterStrippingPrivateBrowsingEnabled(settings.cleanLinks)
+    }
+
+    private var dnsApplied: SecureDns? = null
+
+    /**
+     * DNS over HTTPS with the chosen provider, falling back to the network's resolver if the
+     * provider cannot be reached, so a captive portal or a blocked provider never cuts the
+     * phone off the web.
+     */
+    private fun applySecureDns(dns: SecureDns) {
+        if (dns == dnsApplied) return
+        dnsApplied = dns
+        try {
+            val uri = dns.uri
+            if (uri == null) {
+                runtime.settings.setTrustedRecursiveResolverMode(GeckoRuntimeSettings.TRR_MODE_OFF)
+            } else {
+                runtime.settings.setTrustedRecursiveResolverUri(uri)
+                runtime.settings.setTrustedRecursiveResolverMode(GeckoRuntimeSettings.TRR_MODE_FIRST)
+            }
+        } catch (_: RuntimeException) {
+            dnsApplied = null
+        }
     }
 
     /**

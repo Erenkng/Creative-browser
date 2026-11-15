@@ -38,6 +38,7 @@ import com.oavi.browser.ui.OaviSheet
 import com.oavi.browser.ui.OaviTextField
 import com.oavi.browser.ui.R
 import com.oavi.browser.ui.SectionTitle
+import com.oavi.browser.ui.toColor
 
 /** What can be done with a tab after pressing and holding it. */
 @Composable
@@ -94,7 +95,7 @@ internal fun TabActionsSheet(
         if (!shown.tab.archived) {
             OaviRow(
                 title = stringResource(R.string.tab_close_others),
-                icon = R.drawable.ic_tab,
+                icon = R.drawable.ic_close_others,
                 onClick = {
                     act {
                         controller.closeAll(state.visibleTabs(shown.isPrivate).filter { it.id != shown.id }.map { it.id })

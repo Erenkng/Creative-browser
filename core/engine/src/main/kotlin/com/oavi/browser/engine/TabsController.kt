@@ -30,6 +30,7 @@ import com.oavi.browser.model.TabGroup
 import com.oavi.browser.model.TabRules
 import com.oavi.browser.model.UrlInput
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -38,8 +39,11 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONObject
 import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.ContentBlocking
@@ -123,6 +127,7 @@ class TabsController(
                 }
             }
         }
+        watchNightfall()
     }
 
     // ---------------------------------------------------------------- start-up
@@ -135,7 +140,14 @@ class TabsController(
         sessionStates.putAll(saved.sessionStates)
 
         val now = now()
-        val toArchive = TabRules.archiveCandidates(saved.tabs, saved.selectedId, now).toSet()
+        // Settings are read from disk alongside the tabs; wait briefly for the user's choice.
+        val archiveDays = withTimeoutOrNull(1_500) { settingsStore.settings.first().archiveAfter.days }
+            ?: settings.value.archiveAfter.days
+        val toArchive = if (archiveDays == null) {
+            emptySet()
+        } else {
+            TabRules.archiveCandidates(saved.tabs, saved.selectedId, now, days = archiveDays).toSet()
+        }
         val tabs = saved.tabs.map { if (it.id in toArchive) it.copy(archived = true) else it }
         val selected = saved.selectedId?.takeIf { id -> tabs.any { it.id == id && !it.archived } }
             ?: tabs.lastOrNull { !it.archived }?.id
@@ -332,13 +344,21 @@ class TabsController(
 
     /** Handles text entered in the address field: goes to an address or searches for words. */
     fun submit(input: String) {
-        val resolved = UrlInput.resolve(input, settings.value.searchEngine)
+        val resolved = UrlInput.resolve(input, settings.value.searchEngine, java.util.Locale.getDefault().language)
         val selected = _state.value.selected
         if (resolved is ResolvedInput.Navigate && UrlInput.isExternal(resolved.url)) {
             if (selected != null) askOpenInApp(selected.id, resolved.url, input) else newTab()
             return
         }
         if (selected == null) newTab(resolved.url) else loadUrl(selected.id, resolved.url)
+    }
+
+    /** Searches for [text] (or opens it, when it is an address) in a new tab beside the current one. */
+    fun searchInNewTab(text: String) {
+        val selected = _state.value.selected
+        val resolved = UrlInput.resolve(text, settings.value.searchEngine, java.util.Locale.getDefault().language)
+        if (resolved is ResolvedInput.Navigate && UrlInput.isExternal(resolved.url)) return
+        newTab(resolved.url, private = selected?.isPrivate == true, parentId = selected?.id)
     }
 
     fun loadUrl(id: String, url: String) {
@@ -657,7 +677,7 @@ class TabsController(
                 val address = url ?: return
                 val tab = _state.value.tab(id) ?: return
                 if (address == UrlInput.BLANK && !tab.isBlank) return
-                if (address.startsWith("data:text/html;charset=utf-8;base64,")) return
+                if (address.startsWith(ErrorPages.URI_PREFIX)) return
                 updateTab(id) {
                     it.copy(
                         tab = it.tab.copy(url = address),
@@ -753,13 +773,16 @@ class TabsController(
                     else -> LoadErrorKind.UNKNOWN
                 }
                 val page = ErrorPages.html(text.errorPage(kind), failed)
+                updateTab(id) { it.copy(errorPage = true) }
                 return GeckoResult.fromValue(ErrorPages.dataUri(page))
             }
         })
 
         gecko.setProgressDelegate(object : GeckoSession.ProgressDelegate {
             override fun onPageStart(session: GeckoSession, url: String) {
-                updateTab(id) { it.copy(loading = true, progress = 5, blockedCount = 0, crashed = false) }
+                updateTab(id) {
+                    it.copy(loading = true, progress = 5, blockedCount = 0, crashed = false, errorPage = url.startsWith(ErrorPages.URI_PREFIX))
+                }
                 if (_state.value.selectedId == id) boost?.boost(4_000)
             }
 
@@ -767,7 +790,7 @@ class TabsController(
                 updateTab(id) { it.copy(loading = false, progress = 100) }
                 boost?.calm()
                 val tab = _state.value.tab(id) ?: return
-                if (success && !tab.isPrivate && isWebPage(tab.url)) {
+                if (success && !tab.isPrivate && !tab.errorPage && isWebPage(tab.url)) {
                     val visitedAt = now()
                     scope.launch { library.recordVisit(tab.url, tab.tab.title, visitedAt) }
                 }
@@ -805,7 +828,7 @@ class TabsController(
                 if (tab.isBlank) return
                 updateTab(id) { it.copy(tab = it.tab.copy(title = value)) }
                 persistTab(id)
-                if (!tab.isPrivate && value.isNotBlank()) {
+                if (!tab.isPrivate && !tab.errorPage && value.isNotBlank()) {
                     scope.launch { library.updateTitle(tab.url, value) }
                 }
             }
@@ -942,6 +965,14 @@ class TabsController(
                 val top = CssColor.parse(json.optString("color")) ?: return
                 updateTab(tabId) { it.copy(topColor = top) }
             }
+            "article" -> _events.tryEmit(
+                BrowserEvent.ArticleText(
+                    tabId = tabId,
+                    title = json.optString("title"),
+                    text = json.optString("text"),
+                    language = json.optString("lang").takeIf { it.isNotBlank() },
+                ),
+            )
         }
     }
 
@@ -960,7 +991,8 @@ class TabsController(
     private fun sendPageConfig(session: LiveSession) {
         val config = JSONObject()
             .put("type", "config")
-            .put("forceDark", settings.value.forceDarkPages)
+            .put("forceDark", darkPagesNow())
+            .put("rejectCookies", settings.value.rejectCookieBanners)
         try {
             session.pagePort?.postMessage(config)
         } catch (_: RuntimeException) {
@@ -997,7 +1029,100 @@ class TabsController(
     }
 
     private fun pushBlockerConfig() {
-        engine.pageTools.setBlockerConfig(settings.value.adBlock, protectionOffHosts)
+        val current = settings.value
+        engine.pageTools.setBlockerConfig(current.adBlock, current.dataSaver, current.cleanLinks, protectionOffHosts)
+    }
+
+    /** Whether pages should be dark right now: always, or at night when the user asked for that. */
+    private fun darkPagesNow(): Boolean =
+        settings.value.darkPagesAt(java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY))
+
+    private var darkShown: Boolean? = null
+
+    /** Moves open pages into or out of the dark when evening or morning comes. */
+    private fun watchNightfall() {
+        scope.launch {
+            while (true) {
+                delay(60_000)
+                val dark = darkPagesNow()
+                if (darkShown != null && dark != darkShown) {
+                    for (session in live.values) sendPageConfig(session)
+                }
+                darkShown = dark
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- whole-page tools
+
+    /** Asks the page for its text; it arrives as [BrowserEvent.ArticleText]. */
+    fun requestArticleText() {
+        val id = _state.value.selectedId ?: return
+        val port = live[id]?.pagePort
+        if (port == null) {
+            _events.tryEmit(BrowserEvent.ArticleText(id, "", "", null))
+            return
+        }
+        try {
+            port.postMessage(JSONObject().put("type", "article"))
+        } catch (_: RuntimeException) {
+            _events.tryEmit(BrowserEvent.ArticleText(id, "", "", null))
+        }
+    }
+
+    /** Saves the current page as a PDF in Downloads, reported like any other download. */
+    fun savePdf() {
+        val tab = _state.value.selected ?: return
+        val session = live[tab.id] ?: return
+        val name = DownloadNames.pdfName(tab.tab.label, tab.url)
+        _events.tryEmit(BrowserEvent.DownloadStarted(name))
+        try {
+            session.gecko.saveAsPdf().accept(
+                { stream ->
+                    if (stream == null) {
+                        _events.tryEmit(BrowserEvent.DownloadFailed(name))
+                    } else {
+                        scope.launch {
+                            val saved = downloads.save(name, "application/pdf", stream)
+                            _events.tryEmit(
+                                if (saved != null) BrowserEvent.DownloadFinished(name, saved, "application/pdf") else BrowserEvent.DownloadFailed(name),
+                            )
+                        }
+                    }
+                },
+                { _events.tryEmit(BrowserEvent.DownloadFailed(name)) },
+            )
+        } catch (_: RuntimeException) {
+            _events.tryEmit(BrowserEvent.DownloadFailed(name))
+        }
+    }
+
+    /** Renders the current page as a PDF for printing; it arrives as [BrowserEvent.PagePdf]. */
+    fun preparePrint() {
+        val tab = _state.value.selected ?: return
+        val session = live[tab.id] ?: return
+        val title = tab.tab.label.ifBlank { UrlInput.displayHost(tab.url) }
+        try {
+            session.gecko.saveAsPdf().accept(
+                { stream ->
+                    scope.launch {
+                        val bytes = stream?.let {
+                            withContext(Dispatchers.IO) {
+                                try {
+                                    it.use { input -> input.readBytes() }
+                                } catch (_: java.io.IOException) {
+                                    null
+                                }
+                            }
+                        }
+                        _events.tryEmit(BrowserEvent.PagePdf(title, bytes))
+                    }
+                },
+                { _events.tryEmit(BrowserEvent.PagePdf(title, null)) },
+            )
+        } catch (_: RuntimeException) {
+            _events.tryEmit(BrowserEvent.PagePdf(title, null))
+        }
     }
 
     private fun countBlocked(count: Int) {
@@ -1067,7 +1192,7 @@ class TabsController(
 
     /** Shows Oavi's error page for [url] while the island keeps showing that address. */
     private fun showErrorPage(tabId: String, url: String, kind: LoadErrorKind) {
-        updateTab(tabId) { it.copy(tab = it.tab.copy(url = url), loading = false) }
+        updateTab(tabId) { it.copy(tab = it.tab.copy(url = url), loading = false, errorPage = true) }
         val page = ErrorPages.dataUri(ErrorPages.html(text.errorPage(kind), url))
         val session = live[tabId] ?: run {
             // A fresh page that loads only the error, not the address that cannot be reached.
