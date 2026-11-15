@@ -706,8 +706,10 @@ private fun pageArea(layout: LayoutStyle, ime: Boolean): Modifier {
         .then(if (ime) Modifier.imePadding() else Modifier)
 }
 
+/** Above the bottom bars, measured from the navigation bar (the focus card ends a margin above it). */
 private fun translateLift(layout: LayoutStyle): Dp = when (layout) {
     LayoutStyle.CLASSIC -> 16.dp
+    LayoutStyle.FOCUS -> layout.bottomCover(IslandMode.RESTING) + Bars.FocusMargin + 6.dp
     else -> layout.bottomCover(IslandMode.RESTING) + 6.dp
 }
 
